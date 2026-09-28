@@ -287,7 +287,7 @@ details.more .inner{padding:0 16px 16px}
   .desk-side .sair:hover{background:rgba(255,255,255,.08);color:#fff}
 
   .desk-main{background:var(--bg);min-height:100vh}
-  .inner-wrap{max-width:1080px;margin:0 auto;padding:10px 0 56px}
+  .inner-wrap{max-width:1080px;margin:0 auto;padding:24px 0 56px}
 
   /* ritmo e escala do desktop */
   .hdr{padding:32px var(--gx) 22px}
@@ -296,14 +296,14 @@ details.more .inner{padding:0 16px 16px}
   .hscroll{flex-wrap:wrap;overflow:visible;padding:2px var(--gx) 4px}
   h1{font-size:34px}
   h2{font-size:20px}
-  .hero{padding:26px 28px 34px}
-  .hero-value{font-size:48px}
-  .legend{max-width:520px}
+  .hero{padding:28px 30px 36px}
+  .hero-value{font-size:52px}
+  .hero-label{font-size:14px}
+  .sbar{height:12px}
+  .legend{max-width:560px;gap:14px}
   .nav{display:none}
 
   /* grades com mais colunas */
-  .catgrid{grid-template-columns:repeat(6,1fr);gap:12px}
-  .cat{padding:16px 6px 14px}
   .cat .n{font-size:12.5px}
   .stats{gap:12px}
   .stat{padding:14px 16px}
@@ -312,14 +312,13 @@ details.more .inner{padding:0 16px 16px}
   .desk-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
   .desk-2>*+*{margin-top:0}
 
-  /* início em duas colunas: atenção + cuidados à esquerda, categorias + obra à direita */
-  .home-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:28px;align-items:start;padding:0 var(--gx)}
-  .home-grid .px,.home-grid .sec-h{padding-left:0;padding-right:0}
-  .home-grid .s-alerts{grid-column:1;grid-row:1}
-  .home-grid .s-manut{grid-column:1;grid-row:2}
-  .home-grid .s-cats{grid-column:2;grid-row:1}
-  .home-grid .s-obra{grid-column:2;grid-row:2}
-  .home-grid .catgrid{grid-template-columns:repeat(4,1fr)}
+  /* início: hero e seções numa coluna contida e centralizada.
+     Quando há alertas, eles e os cuidados ocupam a largura toda em cima;
+     categorias e obra seguem abaixo, sempre alinhados ao hero. */
+  .inner-wrap{max-width:900px}
+  .home-grid{display:block}
+  .catgrid{grid-template-columns:repeat(4,1fr)}
+  .cat{padding:18px 8px 14px}
 
   /* registrar gasto: de tela cheia para janela central */
   .folha-bg{display:block;position:fixed;inset:0;background:rgba(14,42,71,.45);z-index:49}
