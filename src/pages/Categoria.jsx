@@ -69,12 +69,12 @@ export default function Categoria() {
           <div key={f.id} className="cartao-escuro" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div className="entre">
               <div><div style={{ fontWeight: 700, fontSize: 15 }}>{f.pessoas?.nome ? `${f.pessoas.nome} · ` : ''}{f.descricao}</div>
-                <div style={{ fontSize: 12, color: '#B8B0A6' }}>{f.recorrencia}{f.dia_vencimento ? ` · vence dia ${f.dia_vencimento}` : ''}{f.debito_automatico ? ' · débito automático' : ''}</div></div>
+                <div style={{ fontSize: 12, color: 'var(--marinho-texto)' }}>{f.recorrencia}{f.dia_vencimento ? ` · vence dia ${f.dia_vencimento}` : ''}{f.debito_automatico ? ' · débito automático' : ''}</div></div>
               <div className="valor" style={{ color: '#fff' }}>{brl(f.valor)}</div>
             </div>
-            <div className="entre" style={{ paddingTop: 10, borderTop: '1px solid #3A3631' }}>
-              {pago ? <span style={{ fontSize: 12, color: '#9CD5B4', fontWeight: 700 }}>Pago em {dataCurta(pago.data)}</span>
-                : <span style={{ fontSize: 12, color: '#E8A97E', fontWeight: 700 }}>Ainda não pago este mês</span>}
+            <div className="entre" style={{ paddingTop: 10, borderTop: '1px solid var(--marinho-linha)' }}>
+              {pago ? <span style={{ fontSize: 12, color: '#9FE0C3', fontWeight: 700 }}>Pago em {dataCurta(pago.data)}</span>
+                : <span style={{ fontSize: 12, color: '#F4B98F', fontWeight: 700 }}>Ainda não pago este mês</span>}
               {!pago && <button className="btn pequeno" onClick={() => marcarPago(f)}>Marcar pago</button>}
             </div>
           </div>

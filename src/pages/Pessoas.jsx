@@ -6,7 +6,7 @@ import { brl, FREQ, UNIDADE } from '../util'
 import { Folha } from '../components/Folha'
 import { Ic } from '../components/Icones'
 
-const CORES = ['#FBE9DD|#8F3A12', '#E4EDF5|#1F4B73', '#DFEFE5|#2E6B4F', '#EDE8E0|#3D3833']
+const CORES = ['#DDF1F8|#0F5F82', '#DCE7F5|#2B4A80', '#DCEFEA|#24705C', '#E7EEF3|#2B4A62']
 export const corAvatar = (nome) => { const [bg, fg] = CORES[(nome?.charCodeAt(0) || 0) % CORES.length].split('|'); return { background: bg, color: fg } }
 
 // Estimativa mensal a partir do combinado
@@ -43,7 +43,7 @@ export default function Pessoas() {
       <div className="cartao" style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <div><div className="rotulo">Previsto no mês</div><div className="valor">{brl(previsto)}</div></div>
         <div><div className="rotulo">Já pago</div><div className="valor">{brl(pagoTotal)}</div></div>
-        <div><div className="rotulo">Pendente</div><div className="valor" style={{ color: 'var(--acento-escuro)' }}>{brl(Math.max(0, previsto - pagoTotal))}</div></div>
+        <div><div className="rotulo">Pendente</div><div className="valor" style={{ color: 'var(--alerta)' }}>{brl(Math.max(0, previsto - pagoTotal))}</div></div>
       </div>
       <div className="lista">
         {pessoas.length === 0 && <div className="cartao vazio">Cadastre quem trabalha na casa: piscineiro, empreiteiro, diaristas, cuidador.</div>}
