@@ -1,272 +1,144 @@
 import { useState } from 'react'
+import { ArrowUp, ArrowDown, Pencil, Plus, LogOut, Check } from 'lucide-react'
 import { supabase } from '../supabase'
-import { useDados } from '../hooks'
-import { brl, STATUS_OBRA, FREQ, UNIDADE } from '../util'
-import { Folha } from '../components/Folha'
-import { Ic } from '../components/Icones'
-import { FolhaPessoa } from './Pessoas'
+import { useDados, q, soma } from '../hooks'
+import { brl } from '../util'
+import { catStyle, CatTile, ICONES, CORES } from '../lib/categoryStyle'
+import { FolhaPessoa, corAvatar } from './Pessoas'
 import { FolhaObra } from './Obras'
+import { Sheet } from '../components/ui/Sheet'
+import { useToast } from '../components/ui/Toast'
 
 const ABAS = [['categorias', 'Categorias'], ['fixos', 'Custos fixos'], ['pessoas', 'Pessoas'], ['obras', 'Obras']]
+const ICON_LISTA = ['Zap', 'Droplet', 'Waves', 'Leaf', 'BrickWall', 'Sparkles', 'PawPrint', 'Wifi', 'Home', 'Wrench', 'ShieldCheck', 'Flame', 'Trash2', 'Car', 'Utensils', 'Tv', 'Bug', 'Hammer']
 
-export default function Admin() {
+export default function Admin({ sessao }) {
   const [aba, setAba] = useState('categorias')
-  return (
-    <div className="pilha">
-      <div className="cabecalho"><div><div className="sobre">Configurações</div><h1>Admin</h1></div></div>
-      <div className="opcoes">{ABAS.map(([v, l]) => <button key={v} className={aba === v ? 'marcado' : ''} onClick={() => setAba(v)}>{l}</button>)}</div>
-      {aba === 'categorias' && <AdminCategorias />}
-      {aba === 'fixos' && <AdminFixos />}
-      {aba === 'pessoas' && <AdminPessoas />}
-      {aba === 'obras' && <AdminObras />}
-    </div>
-  )
-}
+  const [editCat, setEditCat] = useState(null)
+  const [novaPessoa, setNovaPessoa] = useState(false)
+  const [editPessoa, setEditPessoa] = useState(null)
+  const [novaObra, setNovaObra] = useState(false)
+  const [editObra, setEditObra] = useState(null)
+  const [fixoCat, setFixoCat] = useState(null)
+  const toast = useToast()
 
-/* ---------- Categorias ---------- */
-function AdminCategorias() {
   const { dados, recarregar } = useDados(async () => {
-    const [cats, uso] = await Promise.all([
+    const [categorias, pessoas, obras, fixos] = await Promise.all([
       supabase.from('categorias').select('*').order('ordem').then(r => r.data || []),
-      supabase.from('despesas').select('categoria_id').then(r => r.data || []),
+      q.pessoas(),
+      q.obras(),
+      supabase.from('custos_fixos').select('*, categorias(nome), pessoas(nome)').eq('ativo', true).then(r => r.data || []),
     ])
-    const contagem = {}
-    for (const d of uso) contagem[d.categoria_id] = (contagem[d.categoria_id] || 0) + 1
-    return { cats, contagem }
+    return { categorias, pessoas, obras, fixos }
   })
-  const [editando, setEditando] = useState(null) // objeto ou 'nova'
-  const [mostrarArquivadas, setMostrarArquivadas] = useState(false)
   if (!dados) return <p className="carregando">Carregando…</p>
+  const { categorias, pessoas, obras, fixos } = dados
+  const ativas = categorias.filter(c => c.ativo)
 
-  const lista = dados.cats.filter(c => mostrarArquivadas ? !c.ativo : c.ativo)
-
-  const mover = async (c, dir) => {
-    const ativas = dados.cats.filter(x => x.ativo)
-    const i = ativas.findIndex(x => x.id === c.id); const j = i + dir
-    if (j < 0 || j >= ativas.length) return
-    const outra = ativas[j]
-    await Promise.all([
-      supabase.from('categorias').update({ ordem: j + 1 }).eq('id', c.id),
-      supabase.from('categorias').update({ ordem: i + 1 }).eq('id', outra.id),
-    ])
-    recarregar()
-  }
-  const arquivar = async (c, ativo) => { await supabase.from('categorias').update({ ativo }).eq('id', c.id); recarregar() }
-  const apagar = async (c) => {
-    if (dados.contagem[c.id]) return alert('Esta categoria tem despesas registradas. Arquive em vez de apagar.')
-    if (!confirm(`Apagar a categoria "${c.nome}"?`)) return
-    const { error } = await supabase.from('categorias').delete().eq('id', c.id)
-    if (error) alert('Não foi possível apagar: há custos fixos, pessoas ou obras ligados a ela. Arquive em vez de apagar.')
+  const mover = async (cat, dir) => {
+    const idx = ativas.findIndex(c => c.id === cat.id)
+    const alvo = ativas[idx + dir]; if (!alvo) return
+    await supabase.from('categorias').update({ ordem: alvo.ordem }).eq('id', cat.id)
+    await supabase.from('categorias').update({ ordem: cat.ordem }).eq('id', alvo.id)
     recarregar()
   }
 
   return (
     <>
-      <div className="secao-titulo">
-        <a className="link" href="#" onClick={e => { e.preventDefault(); setMostrarArquivadas(!mostrarArquivadas) }}>{mostrarArquivadas ? 'Ver ativas' : `Ver arquivadas (${dados.cats.filter(c => !c.ativo).length})`}</a>
-        <button className="btn pequeno escuro" onClick={() => setEditando('nova')}><Ic n="mais" s={16} w={2.5} />Nova categoria</button>
-      </div>
-      <div className="cartao">
-        {lista.length === 0 && <p className="nota">Nenhuma categoria aqui.</p>}
-        {lista.map((c, i) => (
-          <div key={c.id} className="linha-item" style={{ justifyContent: 'space-between' }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>{c.nome}</div>
-              <div className="nota">{c.media_mensal ? `média ${brl(c.media_mensal)} · ` : ''}{dados.contagem[c.id] || 0} registro{(dados.contagem[c.id] || 0) !== 1 ? 's' : ''}{c.descricao ? ` · ${c.descricao}` : ''}</div>
-            </div>
-            <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-              {c.ativo && <>
-                <button className="icone-btn" style={{ width: 36, height: 36 }} aria-label="Subir" onClick={() => mover(c, -1)} disabled={i === 0}>↑</button>
-                <button className="icone-btn" style={{ width: 36, height: 36 }} aria-label="Descer" onClick={() => mover(c, 1)} disabled={i === lista.length - 1}>↓</button>
-              </>}
-              <button className="btn claro pequeno" onClick={() => setEditando(c)}>Editar</button>
-            </div>
+      <header className="hdr"><div><p className="eyebrow">Configurações</p><h1>Ajustes</h1></div></header>
+      <div className="hscroll">{ABAS.map(([v, t]) => <button key={v} className={`pick ${aba === v ? 'on' : ''}`} onClick={() => setAba(v)}>{t}</button>)}</div>
+
+      {aba === 'categorias' && (
+        <section className="px mt16">
+          <div className="list">
+            {ativas.map((c, i) => (
+              <div key={c.id} className="row">
+                <CatTile cat={c} size="md" />
+                <div className="grow"><p className="t">{c.nome}</p></div>
+                <button className="iconbtn" style={{ width: 34, height: 34 }} onClick={() => mover(c, -1)} disabled={i === 0} aria-label="Subir"><ArrowUp size={16} className="i" /></button>
+                <button className="iconbtn" style={{ width: 34, height: 34 }} onClick={() => mover(c, 1)} disabled={i === ativas.length - 1} aria-label="Descer"><ArrowDown size={16} className="i" /></button>
+                <button className="iconbtn" style={{ width: 34, height: 34 }} onClick={() => setEditCat(c)} aria-label="Editar"><Pencil size={16} className="i" /></button>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      {editando && (
-        <FolhaCategoria c={editando === 'nova' ? null : editando} total={dados.cats.length} onFechar={() => setEditando(null)} onSalvo={recarregar}
-          onArquivar={editando !== 'nova' ? () => { arquivar(editando, !editando.ativo); setEditando(null) } : null}
-          onApagar={editando !== 'nova' ? () => { apagar(editando); setEditando(null) } : null} />
+          <p className="muted" style={{ marginTop: 10 }}>Use as setas para mudar a ordem em que aparecem no início.</p>
+          <button className="btn soft block mt16" onClick={() => setEditCat({ nome: '', ordem: (categorias.at(-1)?.ordem || 0) + 1 })}><Plus size={18} className="i" />Nova categoria</button>
+        </section>
       )}
-    </>
-  )
-}
 
-function FolhaCategoria({ c, total, onFechar, onSalvo, onArquivar, onApagar }) {
-  const [f, setF] = useState({ nome: c?.nome || '', media_mensal: c?.media_mensal || '', descricao: c?.descricao || '' })
-  const [erro, setErro] = useState(null)
-  const set = (k, v) => setF(x => ({ ...x, [k]: v }))
-  const salvar = async () => {
-    if (!f.nome.trim()) return setErro('Dê um nome.')
-    const reg = { nome: f.nome.trim(), media_mensal: f.media_mensal ? Number(String(f.media_mensal).replace(',', '.')) : null, descricao: f.descricao || null }
-    const r = c ? await supabase.from('categorias').update(reg).eq('id', c.id) : await supabase.from('categorias').insert({ ...reg, ordem: total + 1 })
-    if (r.error) return setErro(r.error.message)
-    onSalvo(); onFechar()
-  }
-  return (
-    <Folha titulo={c ? 'Editar categoria' : 'Nova categoria'} onFechar={onFechar}>
-      <div className="form">
-        <div className="campo"><label>Nome</label><input value={f.nome} onChange={e => set('nome', e.target.value)} placeholder="Ex.: Gás, Manutenção elétrica" /></div>
-        <div className="campo"><label>Média mensal esperada (R$)</label><input inputMode="decimal" value={f.media_mensal} onChange={e => set('media_mensal', e.target.value)} placeholder="Usada para avisar quando passar" /></div>
-        <div className="campo"><label>O que entra aqui (opcional)</label><input value={f.descricao} onChange={e => set('descricao', e.target.value)} placeholder="Ex.: conta de luz, lâmpadas, eletricista" /></div>
-        {erro && <p className="erro">{erro}</p>}
-        <button className="btn largo" onClick={salvar}>{c ? 'Salvar' : 'Criar categoria'}</button>
-        {c && (
-          <div className="acoes">
-            <button className="btn claro" onClick={onArquivar}>{c.ativo ? 'Arquivar' : 'Reativar'}</button>
-            <button className="btn claro" style={{ color: 'var(--alerta)' }} onClick={onApagar}>Apagar</button>
-          </div>
-        )}
-      </div>
-    </Folha>
-  )
-}
+      {aba === 'fixos' && (
+        <section className="px mt16">
+          {fixos.length === 0 ? <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nenhum custo fixo. Abra uma categoria e toque em adicionar para criar contas recorrentes.</p></div>
+            : <div className="list">{fixos.map(f => (
+              <div key={f.id} className="row"><div className="grow"><p className="t">{f.pessoas?.nome ? `${f.pessoas.nome} · ` : ''}{f.descricao}</p><p className="s">{f.categorias?.nome}{f.dia_vencimento ? ` · vence dia ${f.dia_vencimento}` : ''} · {f.recorrencia}</p></div>
+                <b className="num">{brl(f.valor)}</b><button className="iconbtn" style={{ width: 34, height: 34, marginLeft: 8 }} onClick={async () => { if (confirm('Arquivar este custo fixo?')) { await supabase.from('custos_fixos').update({ ativo: false }).eq('id', f.id); recarregar() } }} aria-label="Arquivar">×</button></div>
+            ))}</div>}
+        </section>
+      )}
 
-/* ---------- Custos fixos ---------- */
-function AdminFixos() {
-  const { dados, recarregar } = useDados(async () => {
-    const [fixos, cats, pessoas] = await Promise.all([
-      supabase.from('custos_fixos').select('*, categorias(nome), pessoas(nome)').order('ativo', { ascending: false }).order('descricao').then(r => r.data || []),
-      supabase.from('categorias').select('id,nome').eq('ativo', true).order('ordem').then(r => r.data || []),
-      supabase.from('pessoas').select('id,nome,funcao').eq('ativo', true).order('nome').then(r => r.data || []),
-    ])
-    return { fixos, cats, pessoas }
-  })
-  const [editando, setEditando] = useState(null)
-  if (!dados) return <p className="carregando">Carregando…</p>
-  return (
-    <>
-      <div className="secao-titulo"><span className="nota">{dados.fixos.filter(f => f.ativo).length} ativos</span><button className="btn pequeno escuro" onClick={() => setEditando('novo')}><Ic n="mais" s={16} w={2.5} />Novo custo fixo</button></div>
-      <div className="cartao">
-        {dados.fixos.length === 0 && <p className="nota">Nenhum custo fixo cadastrado.</p>}
-        {dados.fixos.map(f => (
-          <div key={f.id} className="linha-item" style={{ justifyContent: 'space-between', opacity: f.ativo ? 1 : .5 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>{f.pessoas?.nome ? `${f.pessoas.nome} · ` : ''}{f.descricao}{!f.ativo && <span className="chip chip-neutra" style={{ marginLeft: 8 }}>arquivado</span>}</div>
-              <div className="nota">{f.categorias?.nome} · {brl(f.valor)} · {f.recorrencia}{f.dia_vencimento ? ` · dia ${f.dia_vencimento}` : ''}{f.debito_automatico ? ' · débito automático' : ''}</div>
-            </div>
-            <button className="btn claro pequeno" onClick={() => setEditando(f)}>Editar</button>
-          </div>
-        ))}
-      </div>
-      {editando && <FolhaFixoAdmin f={editando === 'novo' ? null : editando} cats={dados.cats} pessoas={dados.pessoas} onFechar={() => setEditando(null)} onSalvo={recarregar} />}
-    </>
-  )
-}
+      {aba === 'pessoas' && (
+        <section className="px mt16">
+          <div className="list">{pessoas.map(p => (
+            <button key={p.id} className="row" onClick={() => setEditPessoa(p)}>
+              <div className={`pill-av ${corAvatar(p)}`} style={{ width: 40, height: 40, fontSize: 14, borderRadius: 13 }}>{(p.nome || '?').slice(0, 2).toUpperCase()}</div>
+              <div className="grow"><p className="t">{p.nome}</p><p className="s">{p.funcao} · {brl(p.valor_combinado)}</p></div><Pencil size={16} className="i chev" />
+            </button>
+          ))}</div>
+          <button className="btn soft block mt16" onClick={() => setNovaPessoa(true)}><Plus size={18} className="i" />Nova pessoa</button>
+        </section>
+      )}
 
-function FolhaFixoAdmin({ f: orig, cats, pessoas, onFechar, onSalvo }) {
-  const [f, setF] = useState({
-    categoria_id: orig?.categoria_id || cats[0]?.id || '', descricao: orig?.descricao || '', valor: orig?.valor || '', dia_vencimento: orig?.dia_vencimento || '',
-    recorrencia: orig?.recorrencia || 'mensal', pessoa_id: orig?.pessoa_id || '', debito_automatico: orig?.debito_automatico || false,
-  })
-  const [erro, setErro] = useState(null)
-  const set = (k, v) => setF(x => ({ ...x, [k]: v }))
-  const salvar = async () => {
-    if (!f.descricao || !f.valor) return setErro('Descrição e valor são obrigatórios.')
-    const reg = { categoria_id: f.categoria_id, descricao: f.descricao, valor: Number(String(f.valor).replace(',', '.')), dia_vencimento: f.dia_vencimento ? Number(f.dia_vencimento) : null, recorrencia: f.recorrencia, pessoa_id: f.pessoa_id || null, debito_automatico: f.debito_automatico }
-    const r = orig ? await supabase.from('custos_fixos').update(reg).eq('id', orig.id) : await supabase.from('custos_fixos').insert(reg)
-    if (r.error) return setErro(r.error.message)
-    onSalvo(); onFechar()
-  }
-  const alternar = async () => { await supabase.from('custos_fixos').update({ ativo: !orig.ativo }).eq('id', orig.id); onSalvo(); onFechar() }
-  const apagar = async () => {
-    if (!confirm('Apagar este custo fixo? Os pagamentos já registrados continuam no histórico.')) return
-    await supabase.from('despesas').update({ custo_fixo_id: null }).eq('custo_fixo_id', orig.id)
-    await supabase.from('custos_fixos').delete().eq('id', orig.id); onSalvo(); onFechar()
-  }
-  return (
-    <Folha titulo={orig ? 'Editar custo fixo' : 'Novo custo fixo'} onFechar={onFechar}>
-      <div className="form">
-        <div className="campo"><label>Categoria</label><select value={f.categoria_id} onChange={e => set('categoria_id', e.target.value)}>{cats.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
-        <div className="campo"><label>Descrição</label><input value={f.descricao} onChange={e => set('descricao', e.target.value)} placeholder="Ex.: conta de luz, limpeza semanal" /></div>
-        <div className="campo-linha">
-          <div className="campo"><label>Valor (R$)</label><input inputMode="decimal" value={f.valor} onChange={e => set('valor', e.target.value)} /></div>
-          <div className="campo"><label>Dia do vencimento</label><input inputMode="numeric" value={f.dia_vencimento} onChange={e => set('dia_vencimento', e.target.value)} placeholder="1 a 31" /></div>
+      {aba === 'obras' && (
+        <section className="px mt16">
+          <div className="list">{obras.map(o => (
+            <button key={o.id} className="row" onClick={() => setEditObra(o)}>
+              <CatTile cat={o.categorias} size="md" />
+              <div className="grow"><p className="t">{o.nome}</p><p className="s">{o.status?.replace('_', ' ')}{o.orcamento_total ? ` · ${brl(o.orcamento_total)}` : ''}</p></div><Pencil size={16} className="i chev" />
+            </button>
+          ))}</div>
+          <button className="btn soft block mt16" onClick={() => setNovaObra(true)}><Plus size={18} className="i" />Nova obra</button>
+        </section>
+      )}
+
+      <section className="sec"><div className="sec-h"><h2>Quem usa</h2></div>
+        <div className="px"><div className="list">
+          <div className="row"><div className="avatar" style={{ width: 40, height: 40, boxShadow: 'none' }}>H</div><div className="grow"><p className="t">Hylana</p><p className="s">hylanaenf@gmail.com</p></div></div>
+          <div className="row"><div className="avatar" style={{ width: 40, height: 40, boxShadow: 'none', background: 'linear-gradient(135deg,#7FA3C2,#44607C)' }}>G</div><div className="grow"><p className="t">Glebe</p><p className="s">glebejr@gmail.com</p></div></div>
         </div>
-        <div className="campo"><label>Recorrência</label><div className="opcoes">{['semanal', 'quinzenal', 'mensal', 'anual'].map(v => <button key={v} type="button" className={f.recorrencia === v ? 'marcado' : ''} onClick={() => set('recorrencia', v)}>{v}</button>)}</div></div>
-        <div className="campo"><label>Pessoa (se for pagamento a alguém)</label><select value={f.pessoa_id} onChange={e => set('pessoa_id', e.target.value)}><option value="">Nenhuma</option>{pessoas.map(p => <option key={p.id} value={p.id}>{p.nome} · {p.funcao}</option>)}</select></div>
-        <label className="check"><input type="checkbox" checked={f.debito_automatico} onChange={e => set('debito_automatico', e.target.checked)} />Débito automático</label>
-        {erro && <p className="erro">{erro}</p>}
-        <button className="btn largo" onClick={salvar}>{orig ? 'Salvar' : 'Criar custo fixo'}</button>
-        {orig && <div className="acoes"><button className="btn claro" onClick={alternar}>{orig.ativo ? 'Arquivar' : 'Reativar'}</button><button className="btn claro" style={{ color: 'var(--alerta)' }} onClick={apagar}>Apagar</button></div>}
-      </div>
-    </Folha>
-  )
-}
+        <button className="btn ghost block mt12" style={{ color: 'var(--danger)' }} onClick={() => supabase.auth.signOut()}><LogOut size={18} className="i" />Sair</button></div>
+      </section>
+      <div style={{ height: 12 }} />
 
-/* ---------- Pessoas ---------- */
-function AdminPessoas() {
-  const { dados, recarregar } = useDados(async () => {
-    const [pessoas, cats] = await Promise.all([
-      supabase.from('pessoas').select('*, categorias(nome)').order('ativo', { ascending: false }).order('nome').then(r => r.data || []),
-      supabase.from('categorias').select('id,nome').eq('ativo', true).order('ordem').then(r => r.data || []),
-    ])
-    return { pessoas, cats }
-  })
-  const [editando, setEditando] = useState(null)
-  if (!dados) return <p className="carregando">Carregando…</p>
-  const alternar = async (p) => { await supabase.from('pessoas').update({ ativo: !p.ativo }).eq('id', p.id); recarregar() }
-  return (
-    <>
-      <div className="secao-titulo"><span className="nota">{dados.pessoas.filter(p => p.ativo).length} ativas</span><button className="btn pequeno escuro" onClick={() => setEditando('nova')}><Ic n="mais" s={16} w={2.5} />Nova pessoa</button></div>
-      <div className="cartao">
-        {dados.pessoas.length === 0 && <p className="nota">Ninguém cadastrado ainda.</p>}
-        {dados.pessoas.map(p => (
-          <div key={p.id} className="linha-item" style={{ justifyContent: 'space-between', opacity: p.ativo ? 1 : .5 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>{p.nome}{!p.ativo && <span className="chip chip-neutra" style={{ marginLeft: 8 }}>removida</span>}</div>
-              <div className="nota">{p.funcao} · {FREQ[p.frequencia] || ''}{p.valor_combinado ? ` · ${brl(p.valor_combinado)}${UNIDADE[p.unidade_valor] || ''}` : ''}{p.categorias?.nome ? ` · ${p.categorias.nome}` : ''}</div>
-            </div>
-            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-              <button className="btn claro pequeno" onClick={() => alternar(p)}>{p.ativo ? 'Remover' : 'Reativar'}</button>
-              <button className="btn claro pequeno" onClick={() => setEditando(p)}>Editar</button>
-            </div>
-          </div>
-        ))}
-      </div>
-      {editando && <FolhaPessoa pessoa={editando === 'nova' ? null : editando} categorias={dados.cats} onFechar={() => setEditando(null)} onSalvo={recarregar} />}
+      {editCat && <EditorCategoria cat={editCat} onFechar={() => setEditCat(null)} onSalvo={() => { recarregar(); toast('Categoria salva') }} />}
+      {novaPessoa && <FolhaPessoa cats={categorias} onFechar={() => setNovaPessoa(false)} onSalvo={recarregar} />}
+      {editPessoa && <FolhaPessoa inicial={editPessoa} cats={categorias} onFechar={() => setEditPessoa(null)} onSalvo={recarregar} />}
+      {novaObra && <FolhaObra cats={categorias} pessoas={pessoas} onFechar={() => setNovaObra(false)} onSalvo={recarregar} />}
+      {editObra && <FolhaObra inicial={editObra} cats={categorias} pessoas={pessoas} onFechar={() => setEditObra(null)} onSalvo={recarregar} />}
     </>
   )
 }
 
-/* ---------- Obras ---------- */
-function AdminObras() {
-  const { dados, recarregar } = useDados(async () => {
-    const [obras, cats, pessoas] = await Promise.all([
-      supabase.from('obras').select('*, pessoas(nome)').order('criado_em', { ascending: false }).then(r => r.data || []),
-      supabase.from('categorias').select('id,nome').eq('ativo', true).order('ordem').then(r => r.data || []),
-      supabase.from('pessoas').select('id,nome,funcao').eq('ativo', true).order('nome').then(r => r.data || []),
-    ])
-    return { obras, cats, pessoas }
-  })
-  const [editando, setEditando] = useState(null)
-  if (!dados) return <p className="carregando">Carregando…</p>
-  const apagar = async (o) => {
-    if (!confirm(`Apagar a obra "${o.nome}"? A linha do tempo e o escopo serão apagados. Pagamentos ficam no histórico, sem vínculo com a obra.`)) return
-    await supabase.from('despesas').update({ obra_id: null }).eq('obra_id', o.id)
-    const { error } = await supabase.from('obras').delete().eq('id', o.id)
-    if (error) alert(error.message); recarregar()
+function EditorCategoria({ cat, onFechar, onSalvo }) {
+  const atual = catStyle(cat)
+  const [nome, setNome] = useState(cat.nome || '')
+  const [icone, setIcone] = useState(cat.icone || atual.iconName || 'Tag')
+  const [cor, setCor] = useState(cat.cor || atual.cls || 'c-neutral')
+  const salvar = async () => {
+    if (!nome) return
+    const payload = { nome, icone, cor }
+    if (cat.id) await supabase.from('categorias').update(payload).eq('id', cat.id)
+    else await supabase.from('categorias').insert({ ...payload, ordem: cat.ordem, ativo: true })
+    onSalvo(); onFechar()
   }
+  const arquivar = async () => { if (!cat.id || !confirm('Arquivar esta categoria?')) return; await supabase.from('categorias').update({ ativo: false }).eq('id', cat.id); onSalvo(); onFechar() }
   return (
-    <>
-      <div className="secao-titulo"><span className="nota">{dados.obras.length} obras</span><button className="btn pequeno escuro" onClick={() => setEditando('nova')}><Ic n="mais" s={16} w={2.5} />Nova obra</button></div>
-      <div className="cartao">
-        {dados.obras.length === 0 && <p className="nota">Nenhuma obra cadastrada.</p>}
-        {dados.obras.map(o => (
-          <div key={o.id} className="linha-item" style={{ justifyContent: 'space-between' }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>{o.nome} <span className={`chip ${STATUS_OBRA[o.status].cls}`} style={{ marginLeft: 6 }}>{STATUS_OBRA[o.status].label}</span></div>
-              <div className="nota">{o.area_casa ? `${o.area_casa} · ` : ''}{o.pessoas?.nome ? `${o.pessoas.nome} · ` : ''}{o.orcamento_total ? brl(o.orcamento_total) : 'sem orçamento'}</div>
-            </div>
-            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-              <button className="btn claro pequeno" style={{ color: 'var(--alerta)' }} onClick={() => apagar(o)}>Apagar</button>
-              <button className="btn claro pequeno" onClick={() => setEditando(o)}>Editar</button>
-            </div>
-          </div>
-        ))}
+    <Sheet titulo={cat.id ? 'Editar categoria' : 'Nova categoria'} onFechar={onFechar}>
+      <div className="stack-y">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><CatTile cat={{ nome, icone, cor }} size="lg" /><input className="input" value={nome} onChange={e => setNome(e.target.value)} style={{ flex: 1 }} placeholder="Nome da categoria" /></div>
+        <div><p className="step" style={{ margin: '6px 0 8px' }}>Ícone</p><div className="iconpick">{ICON_LISTA.map(n => { const Ico = ICONES[n]; return <button key={n} type="button" className={icone === n ? 'on' : ''} onClick={() => setIcone(n)}><Ico size={20} className="i" /></button> })}</div></div>
+        <div><p className="step" style={{ margin: '6px 0 8px' }}>Cor</p><div className="colorpick">{CORES.slice(0, 8).map(cls => { const st = catStyle({ cor: cls }); return <button key={cls} type="button" className={cor === cls ? 'on' : ''} onClick={() => setCor(cls)}><span className={cls} style={{ display: 'block', width: '100%', height: '100%', borderRadius: '50%', background: 'var(--c)' }} /></button> })}</div></div>
+        <div className="btnrow">{cat.id && <button className="btn" onClick={arquivar}>Arquivar</button>}<button className="btn primary" onClick={salvar}>Salvar</button></div>
       </div>
-      {editando && <FolhaObra obra={editando === 'nova' ? null : editando} categorias={dados.cats} pessoas={dados.pessoas} onFechar={() => setEditando(null)} onSalvo={recarregar} />}
-    </>
+    </Sheet>
   )
 }

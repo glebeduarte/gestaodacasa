@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation, Link } from 'react-router-dom'
 import { supabase } from './supabase'
-import { Ic } from './components/Icones'
+import { Home, LayoutGrid, Plus, Hammer, Menu, Users, Wrench, FileText, Package, BarChart3, Settings, LogOut } from 'lucide-react'
+import { q } from './hooks'
+import { ToastProvider } from './components/ui/Toast'
+import { FolhaDespesa } from './components/FolhaDespesa'
 import Login from './pages/Login'
 import Inicio from './pages/Inicio'
 import Categorias from './pages/Categorias'
@@ -16,56 +19,75 @@ import Manutencoes from './pages/Manutencoes'
 import Documentos from './pages/Documentos'
 import Estoque from './pages/Estoque'
 import Fechamento from './pages/Fechamento'
-import { FolhaDespesa } from './components/FolhaDespesa'
 
-function Layout({ children }) {
-  const [abrirDespesa, setAbrirDespesa] = useState(false)
+const MAIS = [
+  { to: '/pessoas', label: 'Pessoas', Icon: Users, cls: 'c-pessoas' },
+  { to: '/manutencoes', label: 'Manutenções', Icon: Wrench, cls: 'c-manut', key: 'manut' },
+  { to: '/documentos', label: 'Documentos', Icon: FileText, cls: 'c-docs', key: 'docs' },
+  { to: '/estoque', label: 'Estoque', Icon: Package, cls: 'c-estoque', key: 'estoque' },
+  { to: '/fechamento', label: 'Fechamento', Icon: BarChart3, cls: 'c-fech' },
+  { to: '/admin', label: 'Ajustes', Icon: Settings, cls: 'c-neutral' },
+]
+
+function Layout({ children, sessao }) {
+  const [despesa, setDespesa] = useState(null)
+  const [mais, setMais] = useState(false)
+  const [pend, setPend] = useState({ manut: 0, docs: 0, estoque: 0, total: 0 })
   const loc = useLocation()
-  const [abrirMais, setAbrirMais] = useState(false)
-  const nav = [
-    { to: '/', label: 'Início', ic: 'casa' },
-    { to: '/categorias', label: 'Categorias', ic: 'grade' },
-    { to: '/obras', label: 'Obras', ic: 'obra' },
-    { to: '/pessoas', label: 'Pessoas', ic: 'pessoa' },
-    { to: '/manutencoes', label: 'Manutenções', ic: 'ferramenta' },
-    { to: '/documentos', label: 'Documentos', ic: 'doc' },
-    { to: '/estoque', label: 'Estoque', ic: 'caixa' },
-    { to: '/fechamento', label: 'Fechamento', ic: 'relatorio' },
-    { to: '/admin', label: 'Admin', ic: 'engrenagem' },
+  useEffect(() => { q.pendencias().then(setPend) }, [loc.pathname])
+  const naMais = MAIS.some(m => loc.pathname.startsWith(m.to))
+
+  const deskNav = [
+    { to: '/', label: 'Início', Icon: Home, end: true },
+    { to: '/categorias', label: 'Categorias', Icon: LayoutGrid },
+    { to: '/obras', label: 'Obras', Icon: Hammer },
+    ...MAIS,
   ]
-  const mais = nav.slice(3)
+
   return (
     <div className="app">
-      <nav className="sidebar">
+      <aside className="desk-side">
         <div className="logo">Gestão da Casa</div>
-        {nav.map(n => (
-          <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => isActive ? 'ativo' : ''}>
-            <Ic n={n.ic} s={18} />{n.label}
+        {deskNav.map(n => (
+          <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => isActive ? 'on' : ''}>
+            <n.Icon size={18} className="i" />{n.label}
+            {n.key && pend[n.key] > 0 && <span className="badge">{pend[n.key]}</span>}
           </NavLink>
         ))}
-        <div className="rodape">
-          <button className="sair" onClick={() => supabase.auth.signOut()}>Sair</button>
-        </div>
+        <button className="sair" onClick={() => supabase.auth.signOut()}><LogOut size={16} className="i" style={{ display: 'inline', verticalAlign: -3, marginRight: 8 }} />Sair</button>
+      </aside>
+
+      <main className="desk-main">
+        <div className="inner-wrap" key={loc.pathname}>{children}</div>
+      </main>
+
+      <nav className="nav" aria-label="Navegação">
+        <NavLink to="/" end className={({ isActive }) => isActive ? 'on' : ''}><Home size={23} className="i" /><span>Início</span></NavLink>
+        <NavLink to="/categorias" className={({ isActive }) => isActive ? 'on' : ''}><LayoutGrid size={23} className="i" /><span>Categorias</span></NavLink>
+        <a href="#" className="fab" aria-label="Registrar gasto" onClick={e => { e.preventDefault(); setDespesa({}) }}><span><Plus size={28} strokeWidth={2.4} className="i" /></span><em>Registrar</em></a>
+        <NavLink to="/obras" className={({ isActive }) => isActive ? 'on' : ''}><Hammer size={23} className="i" /><span>Obras</span></NavLink>
+        <button className={naMais ? 'on' : ''} onClick={() => setMais(true)}><Menu size={23} className="i" /><span>Mais</span>{pend.total > 0 && <span className="navbadge">{pend.total}</span>}</button>
       </nav>
-      <main className="conteudo" key={loc.pathname}>{children}</main>
-      <nav className="nav-mobile">
-        <NavLink to="/" end className={({ isActive }) => isActive ? 'ativo' : ''}><Ic n="casa" s={22} />Início</NavLink>
-        <NavLink to="/categorias" className={({ isActive }) => isActive ? 'ativo' : ''}><Ic n="grade" s={22} />Categorias</NavLink>
-        <a href="#" className="fab" aria-label="Registrar despesa" onClick={e => { e.preventDefault(); setAbrirDespesa(true) }}><Ic n="mais" s={26} /></a>
-        <NavLink to="/obras" className={({ isActive }) => isActive ? 'ativo' : ''}><Ic n="obra" s={22} />Obras</NavLink>
-        <a href="#" className={mais.some(m => loc.pathname.startsWith(m.to)) ? 'ativo' : ''} onClick={e => { e.preventDefault(); setAbrirMais(true) }}><Ic n="menu" s={22} />Mais</a>
-      </nav>
-      {abrirDespesa && <FolhaDespesa onFechar={() => setAbrirDespesa(false)} />}
-      {abrirMais && (
-        <div className="folha-fundo" onClick={() => setAbrirMais(false)}>
-          <div className="folha" onClick={e => e.stopPropagation()}>
-            <div className="grade-2">
-              {mais.map(n => <NavLink key={n.to} to={n.to} className="cartao" style={{ alignItems: 'center', gap: 8, padding: 18 }} onClick={() => setAbrirMais(false)}><Ic n={n.ic} s={24} /><span style={{ fontWeight: 700, fontSize: 14 }}>{n.label}</span></NavLink>)}
-              <button className="cartao" style={{ alignItems: 'center', gap: 8, padding: 18, cursor: 'pointer', color: 'var(--cinza)' }} onClick={() => supabase.auth.signOut()}><Ic n="sair" s={24} /><span style={{ fontWeight: 700, fontSize: 14 }}>Sair</span></button>
+
+      {mais && (
+        <>
+          <div className="sheet-bg" onClick={() => setMais(false)} />
+          <div className="sheet-wrap" role="dialog" aria-label="Mais opções">
+            <div className="handle" />
+            <div className="moregrid">
+              {MAIS.map(m => (
+                <NavLink key={m.to} to={m.to} onClick={() => setMais(false)}>
+                  {m.key && pend[m.key] > 0 && <span className="badge">{pend[m.key]}</span>}
+                  <span className={`tile t-md ${m.cls}`}><m.Icon size={22} className="i" /></span>{m.label}
+                </NavLink>
+              ))}
+              <button onClick={() => supabase.auth.signOut()}><span className="tile t-md c-neutral"><LogOut size={22} className="i" /></span>Sair</button>
             </div>
           </div>
-        </div>
+        </>
       )}
+
+      {despesa && <FolhaDespesa inicial={despesa} onFechar={() => setDespesa(null)} />}
     </div>
   )
 }
@@ -77,31 +99,33 @@ export default function App() {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSessao(s))
     return () => sub.subscription.unsubscribe()
   }, [])
-  if (sessao === undefined) return <div className="carregando" style={{ padding: 40 }}>Carregando…</div>
+  if (sessao === undefined) return <div className="carregando">Carregando…</div>
   if (!sessao) return <Login />
   return (
-    <BrowserRouter>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Inicio />} />
-          <Route path="/categorias" element={<Categorias />} />
-          <Route path="/categorias/:id" element={<Categoria />} />
-          <Route path="/casa" element={<Navigate to="/categorias" />} />
-          <Route path="/casa/:id" element={<Categoria />} />
-          <Route path="/obras" element={<Obras />} />
-          <Route path="/obras/:id" element={<Obra />} />
-          <Route path="/pessoas" element={<Pessoas />} />
-          <Route path="/pessoas/:id" element={<Pessoa />} />
-          <Route path="/historico" element={<Registros />} />
-          <Route path="/registros" element={<Navigate to="/historico" />} />
-          <Route path="/manutencoes" element={<Manutencoes />} />
-          <Route path="/documentos" element={<Documentos />} />
-          <Route path="/estoque" element={<Estoque />} />
-          <Route path="/fechamento" element={<Fechamento />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </Layout>
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <Layout sessao={sessao}>
+          <Routes>
+            <Route path="/" element={<Inicio sessao={sessao} />} />
+            <Route path="/categorias" element={<Categorias />} />
+            <Route path="/categorias/:id" element={<Categoria />} />
+            <Route path="/casa" element={<Navigate to="/categorias" />} />
+            <Route path="/casa/:id" element={<Categoria />} />
+            <Route path="/obras" element={<Obras />} />
+            <Route path="/obras/:id" element={<Obra />} />
+            <Route path="/pessoas" element={<Pessoas />} />
+            <Route path="/pessoas/:id" element={<Pessoa />} />
+            <Route path="/historico" element={<Registros />} />
+            <Route path="/registros" element={<Navigate to="/historico" />} />
+            <Route path="/manutencoes" element={<Manutencoes />} />
+            <Route path="/documentos" element={<Documentos />} />
+            <Route path="/estoque" element={<Estoque />} />
+            <Route path="/fechamento" element={<Fechamento />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </Layout>
+      </BrowserRouter>
+    </ToastProvider>
   )
 }

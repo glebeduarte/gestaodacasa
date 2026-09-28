@@ -1,44 +1,43 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Ic } from '../components/Icones'
 import { supabase } from '../supabase'
-import { useDados, q, soma } from '../hooks'
+import { useDados, soma } from '../hooks'
 import { brl, dataCurta } from '../util'
+import { CatTile } from '../lib/categoryStyle'
+import { BackBar } from '../components/ui/BackBar'
 
 export default function Registros() {
-  const [cat, setCat] = useState('')
-  const { dados, recarregar } = useDados(async () => {
-    const [despesas, categorias] = await Promise.all([q.despesas(cat ? { categoria_id: cat } : {}), q.categorias()])
-    return { despesas, categorias }
-  }, [cat])
+  const [filtro, setFiltro] = useState('todos')
+  const { dados } = useDados(async () => {
+    const despesas = await supabase.from('despesas').select('*, categorias(nome,cor,icone), pessoas(nome), obras(nome)').order('data', { ascending: false }).limit(200).then(r => r.data || [])
+    return { despesas }
+  })
   if (!dados) return <p className="carregando">Carregando…</p>
-  const apagar = async (d) => {
-    if (!confirm(`Apagar "${d.descricao}" de ${brl(d.valor)}?`)) return
-    await supabase.from('despesas').delete().eq('id', d.id); recarregar()
-  }
-  // Agrupa por mês
+  const { despesas } = dados
+  const filtros = [['todos', 'Tudo'], ['fixo', 'Fixos'], ['pessoa', 'Pessoas'], ['obra', 'Obras'], ['material', 'Material'], ['variavel', 'Avulsos']]
+  let lista = filtro === 'todos' ? despesas : despesas.filter(d => d.tipo === filtro || (filtro === 'fixo' && d.custo_fixo_id))
+
+  // agrupar por dia
   const grupos = {}
-  for (const d of dados.despesas) { const k = d.data.slice(0, 7); (grupos[k] = grupos[k] || []).push(d) }
-  const nomeMes = (k) => new Date(k + '-02').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+  lista.forEach(d => { (grupos[d.data] = grupos[d.data] || []).push(d) })
 
   return (
-    <div className="pilha">
-      <div className="cabecalho"><div className="voltar-linha"><Link to="/categorias" className="icone-btn" aria-label="Voltar"><Ic n="voltar" s={20} w={2.2} /></Link><div><div className="sobre">Tudo que foi registrado</div><h1>Histórico</h1></div></div></div>
-      <div className="campo"><select value={cat} onChange={e => setCat(e.target.value)}><option value="">Todas as categorias</option>{dados.categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
-      {Object.keys(grupos).length === 0 && <div className="cartao vazio">Nenhum registro ainda.</div>}
-      {Object.entries(grupos).map(([k, lista]) => (
-        <div key={k}>
-          <div className="secao-titulo" style={{ marginBottom: 8 }}><h2 style={{ textTransform: 'capitalize' }}>{nomeMes(k)}</h2><b>{brl(soma(lista))}</b></div>
-          <div className="cartao">
-            {lista.map(d => (
-              <div key={d.id} className="linha-item" style={{ justifyContent: 'space-between' }}>
-                <div style={{ minWidth: 0 }}><div style={{ fontSize: 13, fontWeight: 600 }}>{d.descricao}</div><div className="nota">{dataCurta(d.data)} · {d.categorias?.nome}{d.pessoas?.nome ? ` · ${d.pessoas.nome}` : ''}{d.obras?.nome ? ` · ${d.obras.nome}` : ''}</div></div>
-                <div style={{ textAlign: 'right' }}><b style={{ fontSize: 14 }}>{brl(d.valor)}</b><br /><button onClick={() => apagar(d)} style={{ background: 'none', border: 'none', color: 'var(--cinza)', fontSize: 11, cursor: 'pointer', padding: 0 }}>apagar</button></div>
-              </div>
-            ))}
+    <>
+      <BackBar titulo="Histórico" />
+      <header className="hdr" style={{ paddingTop: 12, paddingBottom: 8 }}><div><p className="eyebrow">Tudo que foi registrado</p><h1>Histórico</h1></div></header>
+      <div className="hscroll">{filtros.map(([v, t]) => <button key={v} className={`pick ${filtro === v ? 'on' : ''}`} onClick={() => setFiltro(v)}>{t}</button>)}</div>
+
+      <section className="px mt16 stack-y">
+        {lista.length === 0 && <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nenhum registro ainda. Toque no botão azul para registrar o primeiro gasto.</p></div>}
+        {Object.entries(grupos).map(([data, itens]) => (
+          <div key={data}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', margin: '4px 2px 8px' }}><span className="muted" style={{ fontWeight: 700 }}>{dataCurta(data)}</span><span className="muted num">{brl(soma(itens))}</span></div>
+            <div className="list">{itens.map(d => (
+              <div key={d.id} className="row"><CatTile cat={d.categorias} size="md" /><div className="grow"><p className="t">{d.descricao}</p><p className="s">{d.categorias?.nome}{d.pessoas?.nome ? ` · ${d.pessoas.nome}` : ''}{d.obras?.nome ? ` · ${d.obras.nome}` : ''}{d.forma_pagamento ? ` · ${d.forma_pagamento}` : ''}</p></div><b className="num">{brl(d.valor)}</b></div>
+            ))}</div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </section>
+      <div style={{ height: 12 }} />
+    </>
   )
 }
