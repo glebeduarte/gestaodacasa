@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { supabase } from '../supabase'
 import { useDados, q, soma } from '../hooks'
 import { brl, mesAtual, semanasDesde, STATUS_OBRA } from '../util'
 import { Ic } from '../components/Icones'
@@ -7,14 +8,19 @@ const DIAS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
 
 export default function Inicio() {
   const { dados, erro } = useDados(async () => {
-    const [categorias, despesas, obras, fixos, pessoas] = await Promise.all([q.categorias(), q.despesasMes(), q.obras(), q.custosFixos(), q.pessoas()])
-    return { categorias, despesas, obras, fixos, pessoas }
+    const [categorias, despesas, obras, fixos, pessoas, manut, docs, estoque] = await Promise.all([
+      q.categorias(), q.despesasMes(), q.obras(), q.custosFixos(), q.pessoas(),
+      supabase.from('manutencoes').select('id,nome,proxima').eq('ativo', true).not('proxima', 'is', null).lte('proxima', new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10)).then(r => r.data || []),
+      supabase.from('documentos').select('id,nome,validade').not('validade', 'is', null).lte('validade', new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)).then(r => r.data || []),
+      supabase.from('estoque_itens').select('id,nome,quantidade,minimo').eq('ativo', true).then(r => (r.data || []).filter(e => Number(e.quantidade) <= Number(e.minimo))),
+    ])
+    return { categorias, despesas, obras, fixos, pessoas, manut, docs, estoque }
   })
   const mes = mesAtual()
   if (erro) return <p className="erro">{erro}</p>
   if (!dados) return <p className="carregando">Carregando…</p>
 
-  const { categorias, despesas, obras, fixos, pessoas } = dados
+  const { categorias, despesas, obras, fixos, pessoas, manut, docs, estoque } = dados
   const total = soma(despesas)
   const totalFixos = soma(fixos)
   const totalObras = soma(despesas.filter(d => d.obra_id))
@@ -43,6 +49,10 @@ export default function Inicio() {
 
   const alertas = [
     ...semOrcamento.map(o => ({ tipo: 'alerta', ic: 'alerta', texto: `${o.nome} sem orçamento registrado`, to: `/obras/${o.id}` })),
+    ...ativas.filter(o => o.orcamento_total && o.combinado_verbal).map(o => ({ tipo: 'alerta', ic: 'alerta', texto: `${o.nome}: combinado só verbal`, to: `/obras/${o.id}` })),
+    ...manut.map(m => ({ tipo: m.proxima < new Date().toISOString().slice(0, 10) ? 'alerta' : 'info', ic: 'ferramenta', texto: `${m.nome}: ${m.proxima < new Date().toISOString().slice(0, 10) ? 'manutenção atrasada' : 'manutenção esta semana'}`, to: '/manutencoes' })),
+    ...docs.map(d => ({ tipo: 'info', ic: 'doc', texto: `${d.nome} vence em breve`, to: '/documentos' })),
+    ...(estoque.length ? [{ tipo: 'info', ic: 'caixa', texto: `${estoque.length} item${estoque.length > 1 ? 'ns' : ''} do estoque acabando`, to: '/estoque' }] : []),
     ...proximos.slice(0, 2).map(f => ({ tipo: 'info', ic: 'relogio', texto: `${f.categorias?.nome}: ${f.descricao} vence dia ${f.dia_vencimento}`, to: `/casa/${f.categoria_id}` })),
     ...porCat.filter(c => c.desvio !== null && c.desvio >= 25).map(c => ({ tipo: 'alerta', ic: 'grafico', texto: `${c.nome} ${c.desvio}% acima da média`, to: `/casa/${c.id}` })),
   ]
@@ -54,6 +64,7 @@ export default function Inicio() {
           <div className="sobre">{mes.label}</div>
           <h1>Como a casa está este mês</h1>
         </div>
+        <Link to="/admin" className="icone-btn" aria-label="Admin"><Ic n="engrenagem" s={20} /></Link>
       </div>
 
       <div className="grade-3">
@@ -87,10 +98,10 @@ export default function Inicio() {
         </div>
       )}
 
-      <div className="secao-titulo"><h2>Categorias</h2><Link to="/casa">Ver todas</Link></div>
+      <div className="secao-titulo"><h2>Categorias</h2><Link to="/categorias">Ver todas</Link></div>
       <div className="grade-4">
         {porCat.map(c => (
-          <Link key={c.id} to={`/casa/${c.id}`} className="cartao">
+          <Link key={c.id} to={`/categorias/${c.id}`} className="cartao">
             <div className="entre"><span className="titulo-cartao">{c.nome}</span>
               {c.desvio !== null && c.desvio >= 25 ? <span className="chip chip-alerta">+{c.desvio}%</span>
                 : c.nObras ? <span className="chip chip-alerta">{c.nObras} obra{c.nObras > 1 ? 's' : ''}</span>

@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Ic } from '../components/Icones'
 import { supabase } from '../supabase'
 import { useDados, q, soma } from '../hooks'
 import { brl, dataCurta } from '../util'
@@ -21,7 +23,7 @@ export default function Registros() {
 
   return (
     <div className="pilha">
-      <div className="cabecalho"><div><div className="sobre">Tudo que foi registrado</div><h1>Registros</h1></div></div>
+      <div className="cabecalho"><div className="voltar-linha"><Link to="/categorias" className="icone-btn" aria-label="Voltar"><Ic n="voltar" s={20} w={2.2} /></Link><div><div className="sobre">Tudo que foi registrado</div><h1>Histórico</h1></div></div></div>
       <div className="campo"><select value={cat} onChange={e => setCat(e.target.value)}><option value="">Todas as categorias</option>{dados.categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
       {Object.keys(grupos).length === 0 && <div className="cartao vazio">Nenhum registro ainda.</div>}
       {Object.entries(grupos).map(([k, lista]) => (

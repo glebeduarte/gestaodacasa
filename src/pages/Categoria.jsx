@@ -42,7 +42,15 @@ export default function Categoria() {
   }
   const max = Math.max(1, ...hist.map(h => h.total))
 
-  const marcarPago = (f) => setDespesaAberta({
+  const marcarPago = async (f) => {
+    if (!confirm(`Confirmar pagamento de ${brl(f.valor)} (${f.descricao}) hoje?`)) return
+    await supabase.from('despesas').insert({
+      tipo: f.pessoa_id ? 'pessoa' : 'fixo', categoria_id: id, pessoa_id: f.pessoa_id || null, custo_fixo_id: f.id,
+      descricao: f.descricao, valor: f.valor, data: hoje(), forma_pagamento: f.debito_automatico ? 'Débito automático' : 'Pix',
+    })
+    recarregar()
+  }
+  const outroValor = (f) => setDespesaAberta({
     tipo: f.pessoa_id ? 'pessoa' : 'fixo', categoria_id: id, pessoa_id: f.pessoa_id || '', custo_fixo_id: f.id,
     descricao: f.descricao, valor: f.valor, data: hoje(), forma_pagamento: f.debito_automatico ? 'Débito automático' : 'Pix',
   })
@@ -51,7 +59,7 @@ export default function Categoria() {
     <div className="pilha">
       <div className="cabecalho">
         <div className="voltar-linha">
-          <Link to="/casa" className="icone-btn" aria-label="Voltar"><Ic n="voltar" s={20} w={2.2} /></Link>
+          <Link to="/categorias" className="icone-btn" aria-label="Voltar"><Ic n="voltar" s={20} w={2.2} /></Link>
           <div><div className="sobre">Categoria</div><h1>{c.nome}</h1></div>
         </div>
         <button className="btn claro pequeno" onClick={() => setEditar(true)}>Editar</button>
@@ -73,9 +81,9 @@ export default function Categoria() {
               <div className="valor" style={{ color: '#fff' }}>{brl(f.valor)}</div>
             </div>
             <div className="entre" style={{ paddingTop: 10, borderTop: '1px solid var(--marinho-linha)' }}>
-              {pago ? <span style={{ fontSize: 12, color: '#9FE0C3', fontWeight: 700 }}>Pago em {dataCurta(pago.data)}</span>
+              {pago ? <span style={{ fontSize: 12, color: '#9FE0C3', fontWeight: 700 }}>Pago em {dataCurta(pago.data)}{pago.consumo ? ` · ${Number(pago.consumo)} ${pago.unidade_consumo}` : ''}</span>
                 : <span style={{ fontSize: 12, color: '#F4B98F', fontWeight: 700 }}>Ainda não pago este mês</span>}
-              {!pago && <button className="btn pequeno" onClick={() => marcarPago(f)}>Marcar pago</button>}
+              {!pago && <div style={{ display: 'flex', gap: 6 }}><button className="btn pequeno claro" onClick={() => outroValor(f)}>Outro valor</button><button className="btn pequeno" onClick={() => marcarPago(f)}>Marcar pago</button></div>}
             </div>
           </div>
         )
@@ -87,7 +95,7 @@ export default function Categoria() {
           <div key={d.id} className="cartao">
             <div className="entre"><span className="titulo-cartao">{d.descricao}</span><span className="titulo-cartao">{brl(d.valor)}</span></div>
             {d.explicacao && <p className="texto">{d.explicacao}</p>}
-            <div className="meta"><span>{dataCurta(d.data)}</span>{d.forma_pagamento && <span>· {d.forma_pagamento}{d.pessoas?.nome ? ` para ${d.pessoas.nome}` : ''}</span>}{d.obras?.nome && <span>· {d.obras.nome}</span>}{d.fotos?.length > 0 && <span className="nota info">· {d.fotos.length} foto{d.fotos.length > 1 ? 's' : ''}</span>}</div>
+            <div className="meta"><span>{dataCurta(d.data)}</span>{d.consumo && <span>· {Number(d.consumo)} {d.unidade_consumo}</span>}{d.forma_pagamento && <span>· {d.forma_pagamento}{d.pessoas?.nome ? ` para ${d.pessoas.nome}` : ''}</span>}{d.obras?.nome && <span>· {d.obras.nome}</span>}{d.fotos?.length > 0 && <span className="nota info">· {d.fotos.length} foto{d.fotos.length > 1 ? 's' : ''}</span>}</div>
             {d.fotos?.length > 0 && <div className="fotos">{d.fotos.map(u => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="" /></a>)}</div>}
           </div>
         ))}

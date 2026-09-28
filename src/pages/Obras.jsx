@@ -42,7 +42,7 @@ export default function Obras() {
           const semOrc = !o.orcamento_total && !['concluida', 'cancelada'].includes(o.status)
           return (
             <Link key={o.id} to={`/obras/${o.id}`} className="cartao">
-              <div className="entre"><span className="titulo-cartao">{o.nome}</span><span className={`chip ${semOrc ? 'chip-alerta' : st.cls}`}>{semOrc ? 'Sem orçamento' : st.label}</span></div>
+              <div className="entre"><span className="titulo-cartao">{o.nome}</span><span className={`chip ${semOrc || o.combinado_verbal ? 'chip-alerta' : st.cls}`}>{semOrc ? 'Sem orçamento' : o.combinado_verbal ? 'Combinado verbal' : st.label}</span></div>
               <div className="nota">{o.area_casa ? `${o.area_casa} · ` : ''}{o.data_inicio ? `Semana ${semanasDesde(o.data_inicio)}` : 'Sem data de início'}{o.pessoas?.nome ? ` · ${o.pessoas.nome}` : ''}</div>
               <div className="barra"><div className={o.orcamento_total ? 'info' : ''} style={{ width: pct + '%' }} /></div>
               <div className="nota">Pago <b>{brl(pago)}</b>{o.orcamento_total ? ` de ${brl(o.orcamento_total)}` : ' · total não informado'}{mat ? ` · materiais ${brl(mat)}` : ''}</div>
@@ -60,7 +60,7 @@ export function FolhaObra({ obra, categorias, pessoas, onFechar, onSalvo }) {
   const [f, setF] = useState({
     nome: obra?.nome || '', area_casa: obra?.area_casa || '', categoria_id: obra?.categoria_id || estrutura?.id || '',
     empreiteiro_id: obra?.empreiteiro_id || '', status: obra?.status || 'em_andamento', data_inicio: obra?.data_inicio || hoje(),
-    prazo_previsto: obra?.prazo_previsto || '', orcamento_total: obra?.orcamento_total || '', descricao: obra?.descricao || '',
+    prazo_previsto: obra?.prazo_previsto || '', orcamento_total: obra?.orcamento_total || '', descricao: obra?.descricao || '', combinado_verbal: obra?.combinado_verbal || false,
   })
   const [erro, setErro] = useState(null)
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
@@ -69,7 +69,7 @@ export function FolhaObra({ obra, categorias, pessoas, onFechar, onSalvo }) {
     const reg = {
       nome: f.nome, area_casa: f.area_casa || null, categoria_id: f.categoria_id || null, empreiteiro_id: f.empreiteiro_id || null,
       status: f.status, data_inicio: f.data_inicio || null, prazo_previsto: f.prazo_previsto || null,
-      orcamento_total: f.orcamento_total ? Number(String(f.orcamento_total).replace(',', '.')) : null, descricao: f.descricao || null,
+      orcamento_total: f.orcamento_total ? Number(String(f.orcamento_total).replace(',', '.')) : null, descricao: f.descricao || null, combinado_verbal: !!f.combinado_verbal,
     }
     if (!reg.orcamento_total && reg.status === 'em_andamento') reg.status = 'orcamento_pendente'
     const r = obra ? await supabase.from('obras').update(reg).eq('id', obra.id) : await supabase.from('obras').insert(reg)
@@ -90,6 +90,7 @@ export function FolhaObra({ obra, categorias, pessoas, onFechar, onSalvo }) {
           <div className="campo"><label>Prazo previsto</label><input type="date" value={f.prazo_previsto} onChange={e => set('prazo_previsto', e.target.value)} /></div>
         </div>
         <div className="campo"><label>Orçamento total combinado (R$)</label><input inputMode="decimal" value={f.orcamento_total} onChange={e => set('orcamento_total', e.target.value)} placeholder="Deixe vazio se ainda não tem" /></div>
+        <label className="check"><input type="checkbox" checked={f.combinado_verbal} onChange={e => set('combinado_verbal', e.target.checked)} />Combinado só verbalmente (sem orçamento por escrito)</label>
         <div className="campo"><label>Situação</label><div className="opcoes">{Object.entries(STATUS_OBRA).map(([v, s]) => <button key={v} type="button" className={f.status === v ? 'marcado' : ''} onClick={() => set('status', v)}>{s.label}</button>)}</div></div>
         <div className="campo"><label>O que foi combinado</label><textarea value={f.descricao} onChange={e => set('descricao', e.target.value)} placeholder="Descreva o combinado, mesmo que verbal" /></div>
         {erro && <p className="erro">{erro}</p>}

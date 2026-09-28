@@ -25,15 +25,18 @@ export default function Categorias() {
   return (
     <div className="pilha">
       <div className="cabecalho">
-        <div><div className="sobre">Categorias</div><h1>A casa</h1></div>
-        <button className="icone-btn escuro" aria-label="Nova categoria" onClick={() => setNova(true)}><Ic n="mais" s={20} w={2.5} /></button>
+        <div><div className="sobre">Onde o dinheiro vai</div><h1>Categorias</h1></div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Link to="/historico" className="btn claro pequeno">Histórico</Link>
+          <button className="icone-btn escuro" aria-label="Nova categoria" onClick={() => setNova(true)}><Ic n="mais" s={20} w={2.5} /></button>
+        </div>
       </div>
       <div className="grade-4">
         {dados.categorias.map(c => {
           const gasto = soma(dados.despesas.filter(d => d.categoria_id === c.id))
           const fixo = soma(dados.fixos.filter(f => f.categoria_id === c.id))
           return (
-            <Link key={c.id} to={`/casa/${c.id}`} className="cartao">
+            <Link key={c.id} to={`/categorias/${c.id}`} className="cartao">
               <span className="titulo-cartao">{c.nome}</span>
               <div className="valor">{brl(gasto)}</div>
               <div className="nota">{fixo ? `Fixo ${brl(fixo)}` : 'Sem custo fixo'}{c.media_mensal ? ` · média ${brl(c.media_mensal)}` : ''}</div>

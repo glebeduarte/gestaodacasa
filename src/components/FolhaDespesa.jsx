@@ -17,14 +17,14 @@ export function FolhaDespesa({ onFechar, onSalvo, inicial = {} }) {
   const [obras, setObras] = useState([])
   const [f, setF] = useState({
     tipo: 'variavel', categoria_id: '', pessoa_id: '', obra_id: '', descricao: '', explicacao: '',
-    valor: '', data: hoje(), forma_pagamento: 'Pix', ...inicial,
+    valor: '', data: hoje(), forma_pagamento: 'Pix', consumo: '', unidade_consumo: 'kWh', ...inicial,
   })
   const [fotos, setFotos] = useState([])
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState(null)
 
   useEffect(() => {
-    supabase.from('categorias').select('id,nome').order('ordem').then(r => setCats(r.data || []))
+    supabase.from('categorias').select('id,nome').eq('ativo', true).order('ordem').then(r => setCats(r.data || []))
     supabase.from('pessoas').select('id,nome,funcao,categoria_id').eq('ativo', true).order('nome').then(r => setPessoas(r.data || []))
     supabase.from('obras').select('id,nome,categoria_id,empreiteiro_id').in('status', ['orcamento_pendente', 'em_andamento', 'pausada']).then(r => setObras(r.data || []))
   }, [])
@@ -48,6 +48,7 @@ export function FolhaDespesa({ onFechar, onSalvo, inicial = {} }) {
         custo_fixo_id: f.custo_fixo_id || null,
         descricao: f.descricao, explicacao: f.explicacao || null, valor: Number(String(f.valor).replace(',', '.')),
         data: f.data, forma_pagamento: f.forma_pagamento, fotos: urls,
+        consumo: f.consumo ? Number(String(f.consumo).replace(',', '.')) : null, unidade_consumo: f.consumo ? f.unidade_consumo : null,
       })
       if (error) throw error
       onSalvo?.(); onFechar()
@@ -97,6 +98,12 @@ export function FolhaDespesa({ onFechar, onSalvo, inicial = {} }) {
           <div className="campo"><label>Data</label><input type="date" value={f.data} onChange={e => set('data', e.target.value)} /></div>
         </div>
 
+        {(f.tipo === 'variavel' || f.tipo === 'fixo') && (
+          <div className="campo-linha">
+            <div className="campo"><label>Consumo (conta de luz, água, gás)</label><input inputMode="decimal" value={f.consumo} onChange={e => set('consumo', e.target.value)} placeholder="Opcional" /></div>
+            <div className="campo"><label>Unidade</label><div className="opcoes">{['kWh', 'm³', 'kg'].map(u => <button key={u} type="button" className={f.unidade_consumo === u ? 'marcado' : ''} onClick={() => set('unidade_consumo', u)}>{u}</button>)}</div></div>
+          </div>
+        )}
         <div className="campo"><label>Descrição curta</label><input value={f.descricao} onChange={e => set('descricao', e.target.value)} placeholder="Ex.: troca do motor da bomba" /></div>
         <div className="campo"><label>O que foi feito (opcional)</label><textarea value={f.explicacao} onChange={e => set('explicacao', e.target.value)} placeholder="Contexto para lembrar depois: por que, quem fez, o que ficou combinado" /></div>
 

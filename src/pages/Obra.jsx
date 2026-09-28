@@ -15,19 +15,21 @@ export default function Obra() {
   const [atualizar, setAtualizar] = useState(false)
   const [pagar, setPagar] = useState(null)
   const [novoItem, setNovoItem] = useState('')
+  const [novoOrc, setNovoOrc] = useState(false)
 
   const { dados, recarregar } = useDados(async () => {
-    const [o, itens, atualizacoes, despesas, categorias, pessoas] = await Promise.all([
+    const [o, itens, atualizacoes, despesas, categorias, pessoas, orcamentos] = await Promise.all([
       supabase.from('obras').select('*, pessoas(nome, telefone), categorias(nome)').eq('id', id).single().then(r => r.data),
       supabase.from('obra_itens').select('*').eq('obra_id', id).order('ordem').then(r => r.data || []),
       supabase.from('obra_atualizacoes').select('*').eq('obra_id', id).order('data', { ascending: false }).then(r => r.data || []),
       q.despesas({ obra_id: id }), q.categorias(), q.pessoas(),
+      supabase.from('obra_orcamentos').select('*, pessoas(nome)').eq('obra_id', id).order('valor').then(r => r.data || []),
     ])
-    return { o, itens, atualizacoes, despesas, categorias, pessoas }
+    return { o, itens, atualizacoes, despesas, categorias, pessoas, orcamentos }
   }, [id])
 
   if (!dados) return <p className="carregando">Carregando…</p>
-  const { o, itens, atualizacoes, despesas, categorias, pessoas } = dados
+  const { o, itens, atualizacoes, despesas, categorias, pessoas, orcamentos } = dados
   if (!o) return <p className="erro">Obra não encontrada.</p>
 
   const pago = soma(despesas.filter(d => d.tipo === 'obra'))
@@ -37,6 +39,7 @@ export default function Obra() {
   const semana = semanasDesde(o.data_inicio)
   const faltas = []
   if (!o.orcamento_total) faltas.push('orçamento total')
+  if (o.combinado_verbal) faltas.push('combinado por escrito')
   if (!o.prazo_previsto) faltas.push('prazo')
   if (!o.empreiteiro_id) faltas.push('responsável')
 
@@ -45,6 +48,15 @@ export default function Obra() {
     if (!novoItem) return
     await supabase.from('obra_itens').insert({ obra_id: id, descricao: novoItem, fora_do_combinado: fora, ordem: itens.length })
     setNovoItem(''); recarregar()
+  }
+  const aprovarOrc = async (oc) => {
+    if (!confirm(`Aprovar ${oc.fornecedor} por ${brl(oc.valor)}? O orçamento total da obra passa a ser esse valor.`)) return
+    await supabase.from('obra_orcamentos').update({ aprovado: false }).eq('obra_id', id)
+    await supabase.from('obra_orcamentos').update({ aprovado: true }).eq('id', oc.id)
+    const reg = { orcamento_total: oc.valor, combinado_verbal: false }
+    if (oc.pessoa_id && !o.empreiteiro_id) reg.empreiteiro_id = oc.pessoa_id
+    if (o.status === 'orcamento_pendente') reg.status = 'em_andamento'
+    await supabase.from('obras').update(reg).eq('id', id); recarregar()
   }
   const mudarStatus = async (s) => {
     const reg = { status: s }
@@ -64,6 +76,7 @@ export default function Obra() {
 
       <div className="chips">
         <span className={`chip ${!o.orcamento_total && aberta ? 'chip-alerta' : st.cls}`}>{!o.orcamento_total && aberta ? 'Sem orçamento' : st.label}</span>
+        {o.combinado_verbal && <span className="chip chip-alerta">Combinado verbal</span>}
         {o.data_inicio && aberta && <span className="chip chip-info">Semana {semana}</span>}
         {o.pessoas?.nome && <span className="chip chip-neutra">{o.pessoas.nome}</span>}
         {o.area_casa && <span className="chip chip-neutra">{o.area_casa}</span>}
@@ -90,6 +103,21 @@ export default function Obra() {
       <div className="acoes">
         <button className="btn escuro" onClick={() => setAtualizar(true)}>+ Atualização</button>
         <button className="btn claro" onClick={() => setPagar({ tipo: 'obra', obra_id: id, categoria_id: o.categoria_id, pessoa_id: o.empreiteiro_id || '' })}>+ Pagamento</button>
+      </div>
+
+      <div className="secao-titulo"><h2>Orçamentos recebidos</h2><a className="link" href="#" onClick={e => { e.preventDefault(); setNovoOrc(true) }}>+ Orçamento</a></div>
+      <div className="cartao">
+        {orcamentos.length === 0 && <p className="nota">Peça orçamento antes de começar. Guarde aqui cada proposta recebida para comparar e aprovar.</p>}
+        {orcamentos.map(oc => (
+          <div key={oc.id} className="linha-item" style={{ justifyContent: 'space-between' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{oc.fornecedor}{oc.aprovado && <span className="chip chip-ok" style={{ marginLeft: 6 }}>aprovado</span>}</div>
+              <div className="nota">{oc.validade ? `válido até ${dataCurta(oc.validade)}` : 'sem validade'}{oc.observacoes ? ` · ${oc.observacoes}` : ''}</div>
+              {oc.arquivo_url && <a href={oc.arquivo_url} target="_blank" rel="noreferrer" className="link">ver arquivo</a>}
+            </div>
+            <div style={{ textAlign: 'right', flexShrink: 0 }}><b>{brl(oc.valor)}</b>{!oc.aprovado && aberta && <div><button className="link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={() => aprovarOrc(oc)}>aprovar</button></div>}</div>
+          </div>
+        ))}
       </div>
 
       <div className="secao-titulo"><h2>Escopo</h2><span className="nota">{itens.filter(i => i.concluido).length} de {itens.length} feitos</span></div>
@@ -144,6 +172,7 @@ export default function Obra() {
       {editar && <FolhaObra obra={o} categorias={categorias} pessoas={pessoas} onFechar={() => setEditar(false)} onSalvo={recarregar} />}
       {atualizar && <FolhaAtualizacao obra={o} semana={semana} onFechar={() => setAtualizar(false)} onSalvo={recarregar} />}
       {pagar && <FolhaDespesa inicial={pagar} onFechar={() => setPagar(null)} onSalvo={recarregar} />}
+      {novoOrc && <FolhaOrcamento obraId={id} pessoas={pessoas} onFechar={() => setNovoOrc(false)} onSalvo={recarregar} />}
     </div>
   )
 }
@@ -172,6 +201,41 @@ function FolhaAtualizacao({ obra, semana, onFechar, onSalvo }) {
         <div className="campo"><label>O que aconteceu</label><textarea value={f.texto} onChange={e => set('texto', e.target.value)} placeholder="Ex.: começaram a parte elétrica. Pediram adiantamento para fiação." /></div>
         <div className="campo"><label>Fotos</label><input type="file" accept="image/*" multiple onChange={e => setFotos([...e.target.files])} /></div>
         <button className="btn largo" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar atualização'}</button>
+      </div>
+    </Folha>
+  )
+}
+
+function FolhaOrcamento({ obraId, pessoas, onFechar, onSalvo }) {
+  const [f, setF] = useState({ fornecedor: '', pessoa_id: '', valor: '', validade: '', observacoes: '' })
+  const [arquivo, setArquivo] = useState(null)
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState(null)
+  const set = (k, v) => setF(x => ({ ...x, [k]: v }))
+  const escolherPessoa = (pid) => { const p = pessoas.find(x => x.id === pid); set('pessoa_id', pid); if (p && !f.fornecedor) set('fornecedor', p.nome) }
+  const salvar = async () => {
+    if (!f.fornecedor || !f.valor) return setErro('Fornecedor e valor são obrigatórios.')
+    setSalvando(true)
+    try {
+      const urls = arquivo ? await enviarFotos([arquivo], `orcamentos/${obraId}`) : []
+      const { error } = await supabase.from('obra_orcamentos').insert({ obra_id: obraId, fornecedor: f.fornecedor, pessoa_id: f.pessoa_id || null, valor: Number(String(f.valor).replace(',', '.')), validade: f.validade || null, observacoes: f.observacoes || null, arquivo_url: urls[0] || null })
+      if (error) throw error
+      onSalvo(); onFechar()
+    } catch (e) { setErro(e.message) } finally { setSalvando(false) }
+  }
+  return (
+    <Folha titulo="Novo orçamento" onFechar={onFechar}>
+      <div className="form">
+        <div className="campo"><label>Quem orçou (pessoa cadastrada)</label><select value={f.pessoa_id} onChange={e => escolherPessoa(e.target.value)}><option value="">Outro fornecedor</option>{pessoas.map(p => <option key={p.id} value={p.id}>{p.nome} · {p.funcao}</option>)}</select></div>
+        <div className="campo"><label>Fornecedor</label><input value={f.fornecedor} onChange={e => set('fornecedor', e.target.value)} placeholder="Nome de quem orçou" /></div>
+        <div className="campo-linha">
+          <div className="campo"><label>Valor (R$)</label><input inputMode="decimal" value={f.valor} onChange={e => set('valor', e.target.value)} /></div>
+          <div className="campo"><label>Válido até</label><input type="date" value={f.validade} onChange={e => set('validade', e.target.value)} /></div>
+        </div>
+        <div className="campo"><label>O que inclui</label><textarea value={f.observacoes} onChange={e => set('observacoes', e.target.value)} placeholder="Mão de obra, materiais, prazo prometido" /></div>
+        <div className="campo"><label>Foto ou PDF do orçamento</label><input type="file" accept="image/*,application/pdf" onChange={e => setArquivo(e.target.files[0] || null)} /></div>
+        {erro && <p className="erro">{erro}</p>}
+        <button className="btn largo" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : 'Guardar orçamento'}</button>
       </div>
     </Folha>
   )

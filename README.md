@@ -1,4 +1,4 @@
-# Casa Hylana
+# Gestão da Casa
 
 App de gestão da manutenção da casa: categorias de custo, custos fixos, despesas com contexto, obras com linha do tempo e pessoas que trabalham na casa.
 

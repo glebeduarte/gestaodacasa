@@ -19,7 +19,7 @@ export default function Login() {
       <form className="caixa" onSubmit={entrar}>
         <div>
           <div className="sobre">Gestão da casa</div>
-          <h1>Casa Hylana</h1>
+          <h1>Gestão da Casa</h1>
         </div>
         <div className="campo"><label htmlFor="email">E-mail</label><input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required /></div>
         <div className="campo"><label htmlFor="senha">Senha</label><input id="senha" type="password" value={senha} onChange={e => setSenha(e.target.value)} autoComplete="current-password" required /></div>

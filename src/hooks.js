@@ -15,7 +15,7 @@ export function useDados(fn, deps = []) {
 }
 
 export const q = {
-  categorias: () => supabase.from('categorias').select('*').order('ordem').then(r => r.data || []),
+  categorias: () => supabase.from('categorias').select('*').eq('ativo', true).order('ordem').then(r => r.data || []),
   pessoas: () => supabase.from('pessoas').select('*, categorias(nome)').eq('ativo', true).order('nome').then(r => r.data || []),
   custosFixos: () => supabase.from('custos_fixos').select('*, categorias(nome), pessoas(nome)').eq('ativo', true).then(r => r.data || []),
   obras: () => supabase.from('obras').select('*, pessoas(nome), categorias(nome)').order('criado_em', { ascending: false }).then(r => r.data || []),

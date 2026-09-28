@@ -198,3 +198,17 @@ p { margin: 0; }
   .folha { animation: sobe .18s ease-out; }
   @keyframes sobe { from { transform: translateY(24px); opacity: 0 } to { transform: none; opacity: 1 } }
 }
+
+/* Impressão do fechamento */
+.print-only { display: none; }
+@media print {
+  .sidebar, .nav-mobile, .no-print { display: none !important; }
+  .conteudo { padding: 0; max-width: none; }
+  .print-only { display: block; }
+  body { background: #fff; }
+  .cartao, .cartao-escuro { break-inside: avoid; box-shadow: none; }
+  .cartao-escuro { background: #fff; color: var(--tinta); border: 1px solid var(--linha); }
+  .cartao-escuro .rotulo, .cartao-escuro .linha-fina span { color: var(--cinza); }
+  .cartao-escuro .destaque { color: var(--alerta); }
+}
+.btn.claro.pequeno { text-decoration: none; }
