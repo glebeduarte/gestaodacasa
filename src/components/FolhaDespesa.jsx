@@ -34,7 +34,9 @@ export function FolhaDespesa({ onFechar, onSalvo, inicial = {} }) {
     supabase.from('pessoas').select('id,nome,funcao,categoria_id').eq('ativo', true).order('nome').then(r => setPessoas(r.data || []))
     supabase.from('obras').select('id,nome,categoria_id,empreiteiro_id').in('status', ['orcamento_pendente', 'em_andamento', 'pausada']).then(r => setObras(r.data || []))
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
+    const esc = (e) => { if (e.key === 'Escape') onFechar() }
+    window.addEventListener('keydown', esc)
+    return () => { document.body.style.overflow = ''; window.removeEventListener('keydown', esc) }
   }, [])
 
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
@@ -63,85 +65,88 @@ export function FolhaDespesa({ onFechar, onSalvo, inicial = {} }) {
   }
 
   return (
-    <div className="app" style={{ position: 'fixed', inset: 0, zIndex: 50, overflow: 'auto', paddingBottom: 100 }}>
-      <div className="backbar"><button className="iconbtn" onClick={onFechar} aria-label="Fechar"><X size={22} className="i" /></button><div className="t">Registrar gasto</div><span style={{ width: 42 }} /></div>
+    <>
+      <div className="folha-bg" onClick={onFechar} />
+      <div className="folha-full" role="dialog" aria-label="Registrar gasto">
+        <div className="backbar"><button className="iconbtn" onClick={onFechar} aria-label="Fechar"><X size={22} className="i" /></button><div className="t">Registrar gasto</div><span style={{ width: 42 }} /></div>
 
-      <div className="px mt24">
-        <div className="step"><b>1</b>O que você está registrando?</div>
-        <div className="kind">
-          {TIPOS.map(([v, t, s, cls]) => { const { Icon } = catStyle({ cor: cls }); return (
-            <button key={v} type="button" className={`opt ${f.tipo === v ? 'on' : ''}`} onClick={() => set('tipo', v)}>
-              <span className={`tile t-md ${cls}`}><Icon size={22} className="i" /></span>
-              <div><b>{t}</b><small>{s}</small></div>
-            </button>
-          ) })}
-        </div>
-      </div>
-
-      {(f.tipo === 'obra' || f.tipo === 'material') && (
-        <div className="px mt24"><div className="step"><b>2</b>Qual obra?</div>
-          <select className="input" value={f.obra_id} onChange={e => escolherObra(e.target.value)}><option value="">Escolher obra</option>{obras.map(o => <option key={o.id} value={o.id}>{o.nome}</option>)}</select></div>
-      )}
-      {(f.tipo === 'pessoa' || f.tipo === 'obra') && (
-        <div className="px mt24"><div className="step"><b>{f.tipo === 'obra' ? '3' : '2'}</b>Para quem?</div>
-          <select className="input" value={f.pessoa_id} onChange={e => escolherPessoa(e.target.value)}><option value="">Escolher pessoa</option>{pessoas.map(p => <option key={p.id} value={p.id}>{p.nome} · {p.funcao}</option>)}</select></div>
-      )}
-
-      <div className="px mt24"><div className="step"><b>{f.tipo === 'variavel' ? '2' : '4'}</b>Quanto foi?</div>
-        <label className="money"><span>R$</span><input inputMode="decimal" placeholder="0,00" aria-label="Valor" value={f.valor} onChange={e => set('valor', e.target.value)} /></label></div>
-
-      {f.tipo === 'variavel' ? (
-        <div className="px mt24"><div className="step"><b>3</b>Em qual categoria?</div>
-          <div className="cats">{cats.map(c => { const { cls, Icon } = catStyle(c); return (
-            <button key={c.id} type="button" className={`catopt ${cls} ${f.categoria_id === c.id ? 'on' : ''}`} onClick={() => set('categoria_id', c.id)}>
-              <span className={`tile t-md ${cls}`}><Icon size={22} className="i" /></span><span>{c.nome}</span>
-            </button>) })}</div></div>
-      ) : (
-        <div className="px mt24"><div className="step"><b>5</b>Categoria</div>
-          <select className="input" value={f.categoria_id} onChange={e => set('categoria_id', e.target.value)}><option value="">Escolher categoria</option>{cats.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
-      )}
-
-      <div className="px mt24"><div className="step"><b>{f.tipo === 'variavel' ? '4' : '6'}</b>Quando?</div>
-        <div className="chips">
-          <button type="button" className={`pick ${f.quando === 'hoje' ? 'on' : ''}`} onClick={() => escolherQuando('hoje')}>Hoje</button>
-          <button type="button" className={`pick ${f.quando === 'ontem' ? 'on' : ''}`} onClick={() => escolherQuando('ontem')}>Ontem</button>
-          <label className={`pick ${f.quando === 'outra' ? 'on' : ''}`} style={{ position: 'relative' }}><Calendar size={17} className="i" />{f.quando === 'outra' ? f.data.split('-').reverse().join('/') : 'Outra data'}<input type="date" value={f.data} onChange={e => { set('data', e.target.value); set('quando', 'outra') }} style={{ position: 'absolute', inset: 0, opacity: 0 }} /></label>
-        </div></div>
-
-      <div className="px mt24"><div className="step"><b>{f.tipo === 'variavel' ? '5' : '7'}</b>O que foi?</div>
-        <input className="input" placeholder="Ex.: troca do motor da bomba" value={f.descricao} onChange={e => set('descricao', e.target.value)} />
-        <div className="chips mt8">{SUGESTOES.map(s => <button key={s} type="button" className="chip" onClick={() => set('descricao', s)}>{s}</button>)}</div></div>
-
-      <div className="px mt24"><div className="step"><b>{f.tipo === 'variavel' ? '6' : '8'}</b>Como pagou?</div>
-        <div className="hscroll" style={{ padding: '2px 0 4px' }}>{PAGAMENTOS.map(p => <button key={p} type="button" className={`pick ${f.forma_pagamento === p ? 'on' : ''}`} onClick={() => set('forma_pagamento', p)}>{p}</button>)}</div></div>
-
-      <div className="px mt24">
-        <label className="upload">
-          <span className="tile t-md c-docs"><Camera size={22} className="i" /></span>
-          <div><b style={{ color: 'var(--ink)', fontSize: 14.5 }}>{fotos.length ? `${fotos.length} foto${fotos.length > 1 ? 's' : ''} escolhida${fotos.length > 1 ? 's' : ''}` : 'Foto do comprovante'}</b><p className="muted">Tire uma foto ou escolha da galeria</p></div>
-          <input type="file" accept="image/*" capture="environment" multiple hidden onChange={e => setFotos([...e.target.files])} />
-        </label>
-      </div>
-
-      <div className="px mt16">
-        <details className="more">
-          <summary>Mais detalhes (opcional)<ChevronDown size={20} className="i chev-i" /></summary>
-          <div className="inner stack-y">
-            {f.tipo === 'variavel' && (
-              <label className="field"><span className="l">Consumo da conta</span>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input className="input" inputMode="decimal" placeholder="Ex.: 420" style={{ flex: 1 }} value={f.consumo} onChange={e => set('consumo', e.target.value)} />
-                  <div className="seg" style={{ width: 170 }}>{['kWh', 'm³', 'kg'].map(u => <button key={u} type="button" className={f.unidade_consumo === u ? 'on' : ''} onClick={() => set('unidade_consumo', u)}>{u}</button>)}</div>
-                </div></label>
-            )}
-            <label className="field"><span className="l">Anotações para lembrar depois</span><textarea className="input" placeholder="Por que, quem fez, o que ficou combinado" value={f.explicacao} onChange={e => set('explicacao', e.target.value)} /></label>
+        <div className="px mt24">
+          <div className="step"><b>1</b>O que você está registrando?</div>
+          <div className="kind">
+            {TIPOS.map(([v, t, s, cls]) => { const { Icon } = catStyle({ cor: cls }); return (
+              <button key={v} type="button" className={`opt ${f.tipo === v ? 'on' : ''}`} onClick={() => set('tipo', v)}>
+                <span className={`tile t-md ${cls}`}><Icon size={22} className="i" /></span>
+                <div><b>{t}</b><small>{s}</small></div>
+              </button>
+            ) })}
           </div>
-        </details>
-      </div>
+        </div>
 
-      {erro && <p className="px mt16" style={{ color: 'var(--danger)', fontWeight: 700, fontSize: 13.5 }}>{erro}</p>}
-      <div style={{ height: 30 }} />
-      <div className="sticky-foot"><button className="btn primary block" onClick={salvar} disabled={salvando}><Check size={20} strokeWidth={2.4} className="i" /> {salvando ? 'Salvando…' : 'Salvar gasto'}</button></div>
-    </div>
+        {(f.tipo === 'obra' || f.tipo === 'material') && (
+          <div className="px mt24"><div className="step"><b>2</b>Qual obra?</div>
+            <select className="input" value={f.obra_id} onChange={e => escolherObra(e.target.value)}><option value="">Escolher obra</option>{obras.map(o => <option key={o.id} value={o.id}>{o.nome}</option>)}</select></div>
+        )}
+        {(f.tipo === 'pessoa' || f.tipo === 'obra') && (
+          <div className="px mt24"><div className="step"><b>{f.tipo === 'obra' ? '3' : '2'}</b>Para quem?</div>
+            <select className="input" value={f.pessoa_id} onChange={e => escolherPessoa(e.target.value)}><option value="">Escolher pessoa</option>{pessoas.map(p => <option key={p.id} value={p.id}>{p.nome} · {p.funcao}</option>)}</select></div>
+        )}
+
+        <div className="px mt24"><div className="step"><b>{f.tipo === 'variavel' ? '2' : '4'}</b>Quanto foi?</div>
+          <label className="money"><span>R$</span><input inputMode="decimal" placeholder="0,00" aria-label="Valor" value={f.valor} onChange={e => set('valor', e.target.value)} /></label></div>
+
+        {f.tipo === 'variavel' ? (
+          <div className="px mt24"><div className="step"><b>3</b>Em qual categoria?</div>
+            <div className="cats">{cats.map(c => { const { cls, Icon } = catStyle(c); return (
+              <button key={c.id} type="button" className={`catopt ${cls} ${f.categoria_id === c.id ? 'on' : ''}`} onClick={() => set('categoria_id', c.id)}>
+                <span className={`tile t-md ${cls}`}><Icon size={22} className="i" /></span><span>{c.nome}</span>
+              </button>) })}</div></div>
+        ) : (
+          <div className="px mt24"><div className="step"><b>5</b>Categoria</div>
+            <select className="input" value={f.categoria_id} onChange={e => set('categoria_id', e.target.value)}><option value="">Escolher categoria</option>{cats.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
+        )}
+
+        <div className="px mt24"><div className="step"><b>{f.tipo === 'variavel' ? '4' : '6'}</b>Quando?</div>
+          <div className="chips">
+            <button type="button" className={`pick ${f.quando === 'hoje' ? 'on' : ''}`} onClick={() => escolherQuando('hoje')}>Hoje</button>
+            <button type="button" className={`pick ${f.quando === 'ontem' ? 'on' : ''}`} onClick={() => escolherQuando('ontem')}>Ontem</button>
+            <label className={`pick ${f.quando === 'outra' ? 'on' : ''}`} style={{ position: 'relative' }}><Calendar size={17} className="i" />{f.quando === 'outra' ? f.data.split('-').reverse().join('/') : 'Outra data'}<input type="date" value={f.data} onChange={e => { set('data', e.target.value); set('quando', 'outra') }} style={{ position: 'absolute', inset: 0, opacity: 0 }} /></label>
+          </div></div>
+
+        <div className="px mt24"><div className="step"><b>{f.tipo === 'variavel' ? '5' : '7'}</b>O que foi?</div>
+          <input className="input" placeholder="Ex.: troca do motor da bomba" value={f.descricao} onChange={e => set('descricao', e.target.value)} />
+          <div className="chips mt8">{SUGESTOES.map(s => <button key={s} type="button" className="chip" onClick={() => set('descricao', s)}>{s}</button>)}</div></div>
+
+        <div className="px mt24"><div className="step"><b>{f.tipo === 'variavel' ? '6' : '8'}</b>Como pagou?</div>
+          <div className="chips">{PAGAMENTOS.map(p => <button key={p} type="button" className={`pick ${f.forma_pagamento === p ? 'on' : ''}`} onClick={() => set('forma_pagamento', p)}>{p}</button>)}</div></div>
+
+        <div className="px mt24">
+          <label className="upload">
+            <span className="tile t-md c-docs"><Camera size={22} className="i" /></span>
+            <div><b style={{ color: 'var(--ink)', fontSize: 14.5 }}>{fotos.length ? `${fotos.length} foto${fotos.length > 1 ? 's' : ''} escolhida${fotos.length > 1 ? 's' : ''}` : 'Foto do comprovante'}</b><p className="muted">Tire uma foto ou escolha da galeria</p></div>
+            <input type="file" accept="image/*" capture="environment" multiple hidden onChange={e => setFotos([...e.target.files])} />
+          </label>
+        </div>
+
+        <div className="px mt16">
+          <details className="more">
+            <summary>Mais detalhes (opcional)<ChevronDown size={20} className="i chev-i" /></summary>
+            <div className="inner stack-y">
+              {f.tipo === 'variavel' && (
+                <label className="field"><span className="l">Consumo da conta</span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input className="input" inputMode="decimal" placeholder="Ex.: 420" style={{ flex: 1 }} value={f.consumo} onChange={e => set('consumo', e.target.value)} />
+                    <div className="seg" style={{ width: 170 }}>{['kWh', 'm³', 'kg'].map(u => <button key={u} type="button" className={f.unidade_consumo === u ? 'on' : ''} onClick={() => set('unidade_consumo', u)}>{u}</button>)}</div>
+                  </div></label>
+              )}
+              <label className="field"><span className="l">Anotações para lembrar depois</span><textarea className="input" placeholder="Por que, quem fez, o que ficou combinado" value={f.explicacao} onChange={e => set('explicacao', e.target.value)} /></label>
+            </div>
+          </details>
+        </div>
+
+        {erro && <p className="px mt16" style={{ color: 'var(--danger)', fontWeight: 700, fontSize: 13.5 }}>{erro}</p>}
+        <div style={{ height: 30 }} />
+        <div className="sticky-foot"><button className="btn primary block" onClick={salvar} disabled={salvando}><Check size={20} strokeWidth={2.4} className="i" /> {salvando ? 'Salvando…' : 'Salvar gasto'}</button></div>
+      </div>
+    </>
   )
 }

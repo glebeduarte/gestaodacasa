@@ -80,78 +80,82 @@ export default function Inicio({ sessao }) {
         </Link>
       </section>
 
-      {top3.length > 0 && (
-        <section className="sec">
-          <div className="sec-h"><h2>Precisa de atenção<span className="count">{alertas.length}</span></h2></div>
-          <div className="px stack-y">
-            {top3.map((a, i) => (
-              <div key={i} className={`alert k-${a.k}`}>
-                {a.ic === 'wrench' ? <span className="tile t-md c-manut"><Wrench size={22} className="i" /></span> : <CatTile cat={a.cat} size="md" />}
-                <div className="grow"><p className="t">{a.texto}</p><p className="s">{a.sub}</p></div>
-                {a.acao === 'pagar' && <button className="btn sm dark" onClick={() => pagarFixo(a.fx)}>Paguei</button>}
-                {a.acao === 'comprar' && <Link className="btn sm soft" to="/estoque">Comprar</Link>}
-                {a.acao === 'ver-manut' && <Link className="btn sm" to="/manutencoes">Ver</Link>}
-              </div>
+      {/* No celular é uma coluna, na ordem abaixo. No desktop vira duas colunas:
+          esquerda = atenção + próximos cuidados, direita = categorias + obra. */}
+      <div className="home-grid">
+        {top3.length > 0 && (
+          <section className="sec s-alerts">
+            <div className="sec-h"><h2>Precisa de atenção<span className="count">{alertas.length}</span></h2></div>
+            <div className="px stack-y">
+              {top3.map((a, i) => (
+                <div key={i} className={`alert k-${a.k}`}>
+                  {a.ic === 'wrench' ? <span className="tile t-md c-manut"><Wrench size={22} className="i" /></span> : <CatTile cat={a.cat} size="md" />}
+                  <div className="grow"><p className="t">{a.texto}</p><p className="s">{a.sub}</p></div>
+                  {a.acao === 'pagar' && <button className="btn sm dark" onClick={() => pagarFixo(a.fx)}>Paguei</button>}
+                  {a.acao === 'comprar' && <Link className="btn sm soft" to="/estoque">Comprar</Link>}
+                  {a.acao === 'ver-manut' && <Link className="btn sm" to="/manutencoes">Ver</Link>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className="sec s-cats">
+          <div className="sec-h"><h2>Categorias</h2><Link to="/categorias">Ver todas <ChevronRight size={16} className="i" /></Link></div>
+          <div className="px catgrid">
+            {categorias.slice(0, 8).map(c => (
+              <Link key={c.id} className="cat card-link" to={`/categorias/${c.id}`}>
+                <CatTile cat={c} size="md" /><span className="n">{c.nome}</span><span className="v num">{brl(catGasto(c))}</span>
+              </Link>
             ))}
           </div>
         </section>
-      )}
 
-      <section className="sec">
-        <div className="sec-h"><h2>Categorias</h2><Link to="/categorias">Ver todas <ChevronRight size={16} className="i" /></Link></div>
-        <div className="px catgrid">
-          {categorias.slice(0, 8).map(c => (
-            <Link key={c.id} className="cat card-link" to={`/categorias/${c.id}`}>
-              <CatTile cat={c} size="md" /><span className="n">{c.nome}</span><span className="v num">{brl(catGasto(c))}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
+        {ativas.length > 0 && (
+          <section className="sec s-obra">
+            <div className="sec-h"><h2>Obra em andamento</h2><Link to="/obras">Ver obras <ChevronRight size={16} className="i" /></Link></div>
+            <div className="px">
+              {ativas.slice(0, 1).map(o => {
+                const pago = soma(despesas.filter(d => d.obra_id === o.id && d.tipo === 'obra'))
+                const sem = semanasDesde(o.data_inicio)
+                let totalSem = null, pctTempo = 50
+                if (o.data_inicio && o.prazo_previsto) { totalSem = Math.max(1, Math.round((new Date(o.prazo_previsto) - new Date(o.data_inicio)) / (7 * 86400000))); pctTempo = Math.min(100, Math.round(sem / totalSem * 100)) }
+                const pctDinheiro = o.orcamento_total ? Math.min(100, Math.round(pago / o.orcamento_total * 100)) : null
+                const afrente = pctDinheiro !== null && o.prazo_previsto && pctDinheiro - pctTempo > 10
+                return (
+                  <Link key={o.id} className="card card-link" to={`/obras/${o.id}`}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                      <span className="tile t-md c-obras"><Wrench size={22} className="i" /></span>
+                      <div style={{ flex: 1 }}><h3>{o.nome}</h3><p className="sub">{o.pessoas?.nome ? `${o.pessoas.nome} · ` : ''}{o.data_inicio ? `semana ${sem}${totalSem ? ` de ${totalSem}` : ''}` : 'sem data'}</p></div>
+                      <span className={`chip ${o.orcamento_total ? 'pool' : 'warn'}`}>{o.orcamento_total ? 'Em andamento' : 'Sem orçamento'}</span>
+                    </div>
+                    {o.prazo_previsto && <div className="mt16"><div className="barlabel"><span>Tempo</span><b>{pctTempo}%</b></div><div className="bar"><i style={{ width: pctTempo + '%', '--b': 'var(--pool)' }} /></div></div>}
+                    {o.orcamento_total ? <div className="mt12"><div className="barlabel"><span>Pago <b className="num">{brl(pago)}</b> de {brl(o.orcamento_total)}</span><b>{pctDinheiro}%</b></div><div className="bar"><i style={{ width: pctDinheiro + '%', '--b': 'var(--warn)' }} /></div></div>
+                      : <p className="chip warn mt12"><TriangleAlert size={14} className="i" /> Peça um orçamento por escrito</p>}
+                    {afrente && <p className="chip warn mt12"><TriangleAlert size={14} className="i" /> Pagamento à frente do andamento</p>}
+                  </Link>
+                )
+              })}
+            </div>
+          </section>
+        )}
 
-      {ativas.length > 0 && (
-        <section className="sec">
-          <div className="sec-h"><h2>Obra em andamento</h2><Link to="/obras">Ver obras <ChevronRight size={16} className="i" /></Link></div>
-          <div className="px">
-            {ativas.slice(0, 1).map(o => {
-              const pago = soma(despesas.filter(d => d.obra_id === o.id && d.tipo === 'obra'))
-              const sem = semanasDesde(o.data_inicio)
-              let totalSem = null, pctTempo = 50
-              if (o.data_inicio && o.prazo_previsto) { totalSem = Math.max(1, Math.round((new Date(o.prazo_previsto) - new Date(o.data_inicio)) / (7 * 86400000))); pctTempo = Math.min(100, Math.round(sem / totalSem * 100)) }
-              const pctDinheiro = o.orcamento_total ? Math.min(100, Math.round(pago / o.orcamento_total * 100)) : null
-              const afrente = pctDinheiro !== null && o.prazo_previsto && pctDinheiro - pctTempo > 10
-              return (
-                <Link key={o.id} className="card card-link" to={`/obras/${o.id}`}>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <span className="tile t-md c-obras"><Wrench size={22} className="i" /></span>
-                    <div style={{ flex: 1 }}><h3>{o.nome}</h3><p className="sub">{o.pessoas?.nome ? `${o.pessoas.nome} · ` : ''}{o.data_inicio ? `semana ${sem}${totalSem ? ` de ${totalSem}` : ''}` : 'sem data'}</p></div>
-                    <span className={`chip ${o.orcamento_total ? 'pool' : 'warn'}`}>{o.orcamento_total ? 'Em andamento' : 'Sem orçamento'}</span>
+        {manut.length > 0 && (
+          <section className="sec s-manut">
+            <div className="sec-h"><h2>Próximos cuidados</h2><Link to="/manutencoes">Agenda <ChevronRight size={16} className="i" /></Link></div>
+            <div className="px"><div className="list">
+              {manut.slice(0, 2).map(m => { const cat = categorias.find(c => c.id === m.categoria_id); const atras = m.proxima < hj
+                return (
+                  <div key={m.id} className="row">
+                    {cat ? <CatTile cat={cat} size="md" /> : <span className="tile t-md c-manut"><Wrench size={22} className="i" /></span>}
+                    <div className="grow"><p className="t">{m.nome}</p><p className="s">{atras ? 'Atrasada' : dataCurta(m.proxima)}</p></div>
+                    <span className={`chip ${atras ? 'danger' : ''}`}>{atras ? 'Atrasada' : dataCurta(m.proxima)}</span>
                   </div>
-                  {o.prazo_previsto && <div className="mt16"><div className="barlabel"><span>Tempo</span><b>{pctTempo}%</b></div><div className="bar"><i style={{ width: pctTempo + '%', '--b': 'var(--pool)' }} /></div></div>}
-                  {o.orcamento_total ? <div className="mt12"><div className="barlabel"><span>Pago <b className="num">{brl(pago)}</b> de {brl(o.orcamento_total)}</span><b>{pctDinheiro}%</b></div><div className="bar"><i style={{ width: pctDinheiro + '%', '--b': 'var(--warn)' }} /></div></div>
-                    : <p className="chip warn mt12"><TriangleAlert size={14} className="i" /> Peça um orçamento por escrito</p>}
-                  {afrente && <p className="chip warn mt12"><TriangleAlert size={14} className="i" /> Pagamento à frente do andamento</p>}
-                </Link>
-              )
-            })}
-          </div>
-        </section>
-      )}
-
-      {manut.length > 0 && (
-        <section className="sec">
-          <div className="sec-h"><h2>Próximos cuidados</h2><Link to="/manutencoes">Agenda <ChevronRight size={16} className="i" /></Link></div>
-          <div className="px"><div className="list">
-            {manut.slice(0, 2).map(m => { const cat = categorias.find(c => c.id === m.categoria_id); const atras = m.proxima < hj
-              return (
-                <div key={m.id} className="row">
-                  {cat ? <CatTile cat={cat} size="md" /> : <span className="tile t-md c-manut"><Wrench size={22} className="i" /></span>}
-                  <div className="grow"><p className="t">{m.nome}</p><p className="s">{atras ? 'Atrasada' : dataCurta(m.proxima)}</p></div>
-                  <span className={`chip ${atras ? 'danger' : ''}`}>{atras ? 'Atrasada' : dataCurta(m.proxima)}</span>
-                </div>
-              ) })}
-          </div></div>
-        </section>
-      )}
+                ) })}
+            </div></div>
+          </section>
+        )}
+      </div>
       <div style={{ height: 12 }} />
     </>
   )

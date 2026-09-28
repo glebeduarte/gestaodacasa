@@ -14,8 +14,8 @@ export default function Login() {
     setOcupado(false)
   }
   return (
-    <div className="app" style={{ display: 'grid', placeItems: 'center', paddingBottom: 0, minHeight: '100vh' }}>
-      <form onSubmit={entrar} style={{ width: '100%', padding: '0 20px', maxWidth: 400 }}>
+    <div className="login-wrap">
+      <form onSubmit={entrar} className="login-card">
         <div className="hero" style={{ padding: '26px 22px 34px', marginBottom: 22 }}>
           <p className="eyebrow">Gestão da casa</p>
           <p className="hero-value" style={{ fontSize: 34, marginTop: 6 }}>Bem-vinda</p>
