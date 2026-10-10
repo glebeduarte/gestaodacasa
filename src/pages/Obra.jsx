@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Phone, MessageCircle, Pencil, Check, Plus, FileText, Hammer, Package } from 'lucide-react'
+import { Phone, MessageCircle, Pencil, Check, Plus, FileText, Hammer, Package, ListChecks } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, soma } from '../hooks'
 import { brl, dataCurta, iniciais, diasAte, semanasDesde, semanasTotal } from '../util'
@@ -20,6 +20,8 @@ export default function Obra() {
   const [editar, setEditar] = useState(false)
   const [orc, setOrc] = useState(false)
   const [att, setAtt] = useState(false)
+  const [novoItem, setNovoItem] = useState('')
+  const [filtroCk, setFiltroCk] = useState('todos')
 
   const { dados, recarregar } = useDados(async () => {
     const [o, cats, pessoas, despesas, itens, atts, orcs] = await Promise.all([
@@ -27,14 +29,17 @@ export default function Obra() {
       supabase.from('categorias').select('id,nome,cor,icone').eq('ativo', true).then(r => r.data || []),
       supabase.from('pessoas').select('id,nome,funcao').eq('ativo', true).order('nome').then(r => r.data || []),
       supabase.from('despesas').select('*').eq('obra_id', id).order('data', { ascending: false }).then(r => r.data || []),
-      supabase.from('obra_itens').select('*').eq('obra_id', id).then(r => r.data || []).catch(() => []),
+      supabase.from('obra_itens').select('*').eq('obra_id', id).order('ordem').then(r => r.data || []).catch(() => []),
       supabase.from('obra_atualizacoes').select('*').eq('obra_id', id).order('criado_em', { ascending: false }).then(r => r.data || []).catch(() => []),
       supabase.from('obra_orcamentos').select('*, pessoas(nome)').eq('obra_id', id).order('criado_em', { ascending: false }).then(r => r.data || []).catch(() => []),
     ])
     return { o, cats, pessoas, despesas, itens, atts, orcs }
   }, [id])
   if (!dados) return <p className="carregando">Carregando…</p>
-  const { o, cats, pessoas, despesas, atts, orcs } = dados
+  const { o, cats, pessoas, despesas, itens, atts, orcs } = dados
+  const feitos = itens.filter(i => i.concluido).length
+  const pctCk = itens.length ? Math.round(feitos / itens.length * 100) : 0
+  const itensVis = filtroCk === 'pendentes' ? itens.filter(i => !i.concluido) : filtroCk === 'feitos' ? itens.filter(i => i.concluido) : itens
 
   const pago = soma(despesas.filter(d => d.tipo === 'obra'))
   const material = soma(despesas.filter(d => d.tipo === 'material'))
@@ -53,11 +58,21 @@ export default function Obra() {
     await supabase.from('obras').update({ orcamento_total: orcamento.valor, combinado_verbal: false }).eq('id', id)
     toast('Orçamento aprovado'); recarregar()
   }
+  const marcar = async (it) => {
+    const concluido = !it.concluido
+    await supabase.from('obra_itens').update({ concluido, concluido_em: concluido ? new Date().toISOString().slice(0, 10) : null }).eq('id', it.id)
+    recarregar()
+  }
+  const addItem = async () => {
+    const t = novoItem.trim(); if (!t) return
+    await supabase.from('obra_itens').insert({ obra_id: id, descricao: t, concluido: false, ordem: itens.length })
+    setNovoItem(''); recarregar()
+  }
   const concluir = async () => { if (!confirm('Marcar esta obra como concluída?')) return; await supabase.from('obras').update({ status: 'concluida', data_conclusao: new Date().toISOString().slice(0, 10) }).eq('id', id); toast('Obra concluída'); recarregar() }
 
   return (
     <>
-      <BackBar to="/obras" titulo="Obra" acao={<button className="iconbtn" onClick={() => setEditar(true)} aria-label="Editar"><Pencil size={18} className="i" /></button>} />
+      <BackBar to="/obras" titulo="Obra" acao={<button className="btn sm" onClick={() => setEditar(true)}><Pencil size={15} className="i" />Editar</button>} />
       <div className="px mt16">
         <div className="chips"><span className={`chip ${chipCls}`}>{chipTxt}</span>{o.area_casa && <span className="chip">{o.area_casa}</span>}{o.data_inicio && <span className="chip">{dataCurta(o.data_inicio)}{o.prazo_previsto ? ` a ${dataCurta(o.prazo_previsto)}` : ''}</span>}</div>
         <h1 style={{ marginTop: 10 }}>{o.nome}</h1>
@@ -90,7 +105,39 @@ export default function Obra() {
         </div></div>
       )}
 
-      {o.descricao && <div className="px mt12"><div className="note"><b>O que foi combinado</b>{o.descricao}</div></div>}
+      <section className="sec">
+        <div className="sec-h"><h2>Descritivo</h2>{!o.descricao && <button className="link" onClick={() => setEditar(true)}>+ Escrever</button>}</div>
+        <div className="px">{o.descricao
+          ? <div className="card descritivo">{o.descricao}</div>
+          : <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nada descrito ainda. Anote o escopo, as etapas de pagamento e quem fornece o material.</p></div>}</div>
+      </section>
+
+      <section className="sec">
+        <div className="sec-h"><h2>Checklist</h2>{itens.length > 0 && <span className="chip ok">{feitos} de {itens.length} feitos</span>}</div>
+        <div className="px"><div className="card">
+          {itens.length > 0 && (<>
+            <div className="barlabel"><span><ListChecks size={15} className="i" style={{ verticalAlign: -3 }} /> Progresso do combinado</span><b>{pctCk}%</b></div>
+            <div className="bar" style={{ height: 10 }}><i style={{ width: pctCk + '%', '--b': 'var(--ok)' }} /></div>
+            <div className="seg mt12">
+              <button className={filtroCk === 'todos' ? 'on' : ''} onClick={() => setFiltroCk('todos')}>Todos</button>
+              <button className={filtroCk === 'pendentes' ? 'on' : ''} onClick={() => setFiltroCk('pendentes')}>Falta · {itens.length - feitos}</button>
+              <button className={filtroCk === 'feitos' ? 'on' : ''} onClick={() => setFiltroCk('feitos')}>Feitos · {feitos}</button>
+            </div>
+            <div className="ck-list">{itensVis.map(it => (
+              <button key={it.id} type="button" className={`ck-row ${it.concluido ? 'on' : ''}`} onClick={() => marcar(it)}>
+                <span className="ck-box">{it.concluido && <Check size={15} strokeWidth={3} className="i" />}</span>
+                <span className="ck-t">{it.descricao}{it.concluido && it.concluido_em && <small>feito em {dataCurta(it.concluido_em)}</small>}</span>
+              </button>))}
+              {itensVis.length === 0 && <p className="muted" style={{ padding: '10px 2px' }}>Nada aqui.</p>}
+            </div>
+          </>)}
+          {itens.length === 0 && <p className="muted" style={{ marginBottom: 10 }}>Liste o que será feito nesta obra para ir marcando o que já ficou pronto.</p>}
+          <div className="ck-add">
+            <input className="input" value={novoItem} onChange={e => setNovoItem(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} placeholder="Novo item do checklist" />
+            <button className="btn sm dark" onClick={addItem}><Plus size={15} className="i" />Item</button>
+          </div>
+        </div></div>
+      </section>
 
       <section className="sec">
         <div className="sec-h"><h2>Pagamentos</h2><button className="link" onClick={() => setPagar(true)}>+ Registrar</button></div>
@@ -114,11 +161,10 @@ export default function Obra() {
           ))}</div>}</div>
       </section>
 
-      {atts.length > 0 && (
-        <section className="sec"><div className="sec-h"><h2>Andamento</h2><button className="link" onClick={() => setAtt(true)}>+ Anotar</button></div>
-          <div className="px"><div className="list">{atts.map(a => <div key={a.id} className="row"><div className="grow"><p className="t">{a.titulo || 'Atualização'}</p><p className="s">{a.descricao}</p></div><span className="muted">{dataCurta((a.criado_em || '').slice(0, 10))}</span></div>)}</div></div>
-        </section>
-      )}
+      <section className="sec"><div className="sec-h"><h2>Andamento</h2><button className="link" onClick={() => setAtt(true)}>+ Anotar</button></div>
+        <div className="px">{atts.length === 0 ? <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nenhuma anotação. Registre o que aconteceu em cada visita ou semana.</p></div>
+          : <div className="list">{atts.map(a => <div key={a.id} className="row"><div className="grow"><p className="s" style={{ marginTop: 0, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{a.texto}</p></div><span className="muted">{dataCurta(a.data || (a.criado_em || '').slice(0, 10))}</span></div>)}</div>}</div>
+      </section>
 
       {fotos.length > 0 && (
         <section className="sec"><div className="sec-h"><h2>Fotos da obra</h2></div>
@@ -132,7 +178,7 @@ export default function Obra() {
       <div style={{ height: 12 }} />
 
       {pagar && <FolhaDespesa inicial={{ tipo: 'obra', obra_id: o.id, categoria_id: o.categoria_id || '', pessoa_id: o.empreiteiro_id || '', descricao: '' }} onFechar={() => setPagar(false)} onSalvo={recarregar} />}
-      {editar && <FolhaObra inicial={o} cats={cats} pessoas={pessoas} onFechar={() => setEditar(false)} onSalvo={recarregar} />}
+      {editar && <FolhaObra inicial={(({ pessoas: _p, categorias: _c, ...r }) => r)(o)} itensIniciais={itens} cats={cats} pessoas={pessoas} onFechar={() => setEditar(false)} onSalvo={recarregar} />}
       {orc && <FolhaOrcamento obra_id={o.id} pessoas={pessoas} onFechar={() => setOrc(false)} onSalvo={recarregar} />}
       {att && <FolhaAtualizacao obra_id={o.id} onFechar={() => setAtt(false)} onSalvo={recarregar} />}
     </>
@@ -160,14 +206,14 @@ function FolhaOrcamento({ obra_id, pessoas, onFechar, onSalvo }) {
 }
 
 function FolhaAtualizacao({ obra_id, onFechar, onSalvo }) {
-  const [f, setF] = useState({ titulo: '', descricao: '' })
+  const [f, setF] = useState({ data: new Date().toISOString().slice(0, 10), texto: '' })
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
-  const salvar = async () => { if (!f.descricao) return; await supabase.from('obra_atualizacoes').insert({ obra_id, titulo: f.titulo || null, descricao: f.descricao }); onSalvo(); onFechar() }
+  const salvar = async () => { if (!f.texto) return; await supabase.from('obra_atualizacoes').insert({ obra_id, data: f.data, texto: f.texto, tipo: 'nota' }); onSalvo(); onFechar() }
   return (
     <Sheet titulo="Anotar andamento" onFechar={onFechar}>
       <div className="stack-y">
-        <label className="field"><span className="l">Título</span><input className="input" value={f.titulo} onChange={e => set('titulo', e.target.value)} placeholder="Ex.: estrutura pronta" /></label>
-        <label className="field"><span className="l">O que aconteceu</span><textarea className="input" value={f.descricao} onChange={e => set('descricao', e.target.value)} /></label>
+        <label className="field"><span className="l">Data</span><input className="input" type="date" value={f.data} onChange={e => set('data', e.target.value)} /></label>
+        <label className="field"><span className="l">O que aconteceu</span><textarea className="input" value={f.texto} onChange={e => set('texto', e.target.value)} placeholder="Ex.: estrutura pronta, faltou material" /></label>
         <button className="btn primary block" onClick={salvar}>Salvar</button>
       </div>
     </Sheet>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Hammer, Plus, Lightbulb } from 'lucide-react'
+import { Hammer, Plus, Lightbulb, X, ListChecks } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, q, soma } from '../hooks'
 import { brl, brlCurto, dataCurta, semanasDesde, semanasTotal } from '../util'
@@ -13,16 +13,17 @@ export default function Obras() {
   const [aba, setAba] = useState('abertas')
   const [nova, setNova] = useState(false)
   const { dados, recarregar } = useDados(async () => {
-    const [obras, cats, pessoas, despesas] = await Promise.all([
+    const [obras, cats, pessoas, despesas, itens] = await Promise.all([
       q.obras(),
       supabase.from('categorias').select('id,nome,cor,icone').eq('ativo', true).then(r => r.data || []),
       supabase.from('pessoas').select('id,nome,funcao').eq('ativo', true).order('nome').then(r => r.data || []),
       supabase.from('despesas').select('obra_id,valor,tipo').not('obra_id', 'is', null).then(r => r.data || []),
+      supabase.from('obra_itens').select('obra_id,concluido').then(r => r.data || []),
     ])
-    return { obras, cats, pessoas, despesas }
+    return { obras, cats, pessoas, despesas, itens }
   })
   if (!dados) return <p className="carregando">Carregando…</p>
-  const { obras, cats, pessoas, despesas } = dados
+  const { obras, cats, pessoas, despesas, itens } = dados
   const abertas = obras.filter(o => ABERTAS.includes(o.status))
   const concluidas = obras.filter(o => o.status === 'concluida')
   const lista = aba === 'abertas' ? abertas : concluidas
@@ -47,6 +48,8 @@ export default function Obras() {
           const sem = semanasDesde(o.data_inicio)
           const totalSem = semanasTotal(o.data_inicio, o.prazo_previsto)
           const pctTempo = totalSem ? Math.min(100, Math.round(sem / totalSem * 100)) : null
+          const its = itens.filter(i => i.obra_id === o.id)
+          const feitos = its.filter(i => i.concluido).length
           const pctDinheiro = o.orcamento_total ? Math.min(100, Math.round(pago / o.orcamento_total * 100)) : null
           return (
             <Link key={o.id} className="card card-link" to={`/obras/${o.id}`}>
@@ -57,6 +60,7 @@ export default function Obras() {
                   : o.orcamento_total ? <span className="chip pool">{totalSem ? `Semana ${sem}/${totalSem}` : 'Em andamento'}</span>
                     : <span className="chip warn">Sem orçamento</span>}
               </div>
+              {its.length > 0 && <div className="mt12"><div className="barlabel"><span><ListChecks size={14} className="i" style={{ verticalAlign: -2 }} /> Checklist</span><b>{feitos} de {its.length}</b></div><div className="bar"><i style={{ width: Math.round(feitos / its.length * 100) + '%', '--b': 'var(--ok)' }} /></div></div>}
               {o.orcamento_total ? (<>
                 <div className="stats mt16">
                   <div className="stat" style={{ boxShadow: 'none', background: 'var(--surface-2)' }}><p className="l">Combinado</p><p className="v num">{brlCurto(o.orcamento_total)}</p></div>
@@ -80,15 +84,37 @@ export default function Obras() {
   )
 }
 
-export function FolhaObra({ inicial = {}, cats, pessoas, onFechar, onSalvo }) {
-  const [f, setF] = useState({ nome: '', area_casa: '', categoria_id: '', empreiteiro_id: '', status: 'em_andamento', data_inicio: '', prazo_previsto: '', orcamento_total: '', combinado_verbal: false, descricao: '', ...inicial })
+export function FolhaObra({ inicial = {}, itensIniciais = [], cats, pessoas, onFechar, onSalvo }) {
+  const limpo = Object.fromEntries(Object.entries(inicial).map(([k, v]) => [k, v ?? '']))
+  const [f, setF] = useState({ nome: '', area_casa: '', categoria_id: '', empreiteiro_id: '', status: 'em_andamento', data_inicio: '', prazo_previsto: '', orcamento_total: '', combinado_verbal: false, descricao: '', ...limpo })
+  const [itens, setItens] = useState(() => [...itensIniciais].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)))
+  const [novoItem, setNovoItem] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const addItem = () => {
+    const linhas = novoItem.split('\n').map(t => t.replace(/^[-*•\s]+/, '').trim()).filter(Boolean)
+    if (!linhas.length) return
+    setItens(x => [...x, ...linhas.map(descricao => ({ chave: Math.random().toString(36).slice(2), descricao, concluido: false }))])
+    setNovoItem('')
+  }
+  const editItem = (i, k, v) => setItens(x => x.map((it, j) => j === i ? { ...it, [k]: v } : it))
+  const delItem = (i) => setItens(x => x.filter((_, j) => j !== i))
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
   const salvar = async () => {
-    if (!f.nome) return
+    if (!f.nome || salvando) return
+    setSalvando(true)
     const payload = { nome: f.nome, area_casa: f.area_casa || null, categoria_id: f.categoria_id || null, empreiteiro_id: f.empreiteiro_id || null, status: f.status, data_inicio: f.data_inicio || null, prazo_previsto: f.prazo_previsto || null, orcamento_total: f.orcamento_total ? Number(f.orcamento_total) : null, combinado_verbal: f.combinado_verbal, descricao: f.descricao || null }
-    if (f.id) await supabase.from('obras').update(payload).eq('id', f.id)
-    else await supabase.from('obras').insert(payload)
-    onSalvo(); onFechar()
+    let obraId = f.id
+    if (obraId) await supabase.from('obras').update(payload).eq('id', obraId)
+    else obraId = (await supabase.from('obras').insert(payload).select('id').single()).data?.id
+    if (obraId) {
+      const ficam = itens.filter(it => it.descricao.trim())
+      const removidos = itensIniciais.filter(a => !ficam.some(b => b.id === a.id)).map(a => a.id)
+      if (removidos.length) await supabase.from('obra_itens').delete().in('id', removidos)
+      await Promise.all(ficam.map((it, ordem) => it.id
+        ? supabase.from('obra_itens').update({ descricao: it.descricao.trim(), ordem }).eq('id', it.id)
+        : supabase.from('obra_itens').insert({ obra_id: obraId, descricao: it.descricao.trim(), concluido: false, ordem })))
+    }
+    setSalvando(false); onSalvo(); onFechar()
   }
   return (
     <Sheet titulo={f.id ? 'Editar obra' : 'Nova obra'} onFechar={onFechar}>
@@ -107,7 +133,19 @@ export function FolhaObra({ inicial = {}, cats, pessoas, onFechar, onSalvo }) {
         <label className="field" style={{ display: 'flex', alignItems: 'center', gap: 10, flexDirection: 'row' }}><input type="checkbox" checked={f.combinado_verbal} onChange={e => set('combinado_verbal', e.target.checked)} style={{ width: 20, height: 20 }} /><span style={{ fontSize: 14 }}>Combinado só verbalmente</span></label>
         <label className="field"><span className="l">Status</span><select className="input" value={f.status} onChange={e => set('status', e.target.value)}>{[['orcamento_pendente', 'Orçamento pendente'], ['em_andamento', 'Em andamento'], ['pausada', 'Pausada'], ['concluida', 'Concluída'], ['cancelada', 'Cancelada']].map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>
         <label className="field"><span className="l">O que foi combinado</span><textarea className="input" value={f.descricao} onChange={e => set('descricao', e.target.value)} placeholder="Escopo, etapas de pagamento, quem fornece material" /></label>
-        <button className="btn primary block" onClick={salvar}>Salvar obra</button>
+        <div className="field"><span className="l">Checklist do que será feito</span>
+          {itens.length > 0 && <div className="ck-edit">{itens.map((it, i) => (
+            <div key={it.id || it.chave} className="ck-edit-row">
+              <span className={`ck-dot ${it.concluido ? 'on' : ''}`} />
+              <input className="input" value={it.descricao} onChange={e => editItem(i, 'descricao', e.target.value)} />
+              <button type="button" className="iconbtn" onClick={() => delItem(i)} aria-label="Remover item"><X size={16} className="i" /></button>
+            </div>))}</div>}
+          <div className="ck-add">
+            <textarea className="input" rows={2} value={novoItem} onChange={e => setNovoItem(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addItem() } }} placeholder="Ex.: trocar piso do deck. Cole uma lista para criar vários itens de uma vez" />
+            <button type="button" className="btn sm dark" onClick={addItem}><Plus size={15} className="i" />Item</button>
+          </div>
+        </div>
+        <button className="btn primary block" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar obra'}</button>
       </div>
     </Sheet>
   )

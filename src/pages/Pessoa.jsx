@@ -5,22 +5,24 @@ import { supabase } from '../supabase'
 import { useDados, soma } from '../hooks'
 import { brl, dataCurta, iniciais, mesAtual, UNIDADE } from '../util'
 import { BackBar } from '../components/ui/BackBar'
-import { FolhaDespesa } from '../components/FolhaDespesa'
+import { FolhaPagamento, FolhaVerPagamento, TIPO_ITEM } from '../components/FolhaPagamento'
 import { FolhaPessoa, corAvatar, previstoMes } from './Pessoas'
 
 export default function Pessoa() {
   const { id } = useParams()
   const [pagar, setPagar] = useState(false)
   const [editar, setEditar] = useState(false)
+  const [ver, setVer] = useState(null)
+  const [todos, setTodos] = useState(false)
   const { dados, recarregar } = useDados(async () => {
-    const seis = new Date(); seis.setMonth(seis.getMonth() - 6)
+    const seis = new Date(); seis.setMonth(seis.getMonth() - (todos ? 120 : 6))
     const [p, cats, despesas] = await Promise.all([
       supabase.from('pessoas').select('*, categorias(*)').eq('id', id).single().then(r => r.data),
       supabase.from('categorias').select('id,nome,cor,icone').eq('ativo', true).then(r => r.data || []),
-      supabase.from('despesas').select('*').eq('pessoa_id', id).gte('data', seis.toISOString().slice(0, 10)).order('data', { ascending: false }).then(r => r.data || []),
+      supabase.from('despesas').select('*, pagamento_itens(*)').eq('pessoa_id', id).gte('data', seis.toISOString().slice(0, 10)).order('data', { ascending: false }).then(r => r.data || []),
     ])
     return { p, cats, despesas }
-  }, [id])
+  }, [id, todos])
   if (!dados) return <p className="carregando">Carregando…</p>
   const { p, cats, despesas } = dados
   const m = mesAtual()
@@ -35,7 +37,7 @@ export default function Pessoa() {
       <header className="hdr" style={{ paddingTop: 12 }}>
         <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
           <div className={`pill-av ${corAvatar(p)}`} style={{ width: 60, height: 60, fontSize: 20, borderRadius: 18 }}>{iniciais(p.nome)}</div>
-          <div><h1 style={{ fontSize: 24 }}>{p.nome}</h1><p className="sub">{p.funcao} · {brl(p.valor_combinado)} {UNIDADE[p.unidade_valor] || ''}</p></div>
+          <div><h1 style={{ fontSize: 24 }}>{p.nome}</h1><p className="sub">{p.funcao}{p.valor_combinado ? ` · ${brl(p.valor_combinado)} ${UNIDADE[p.unidade_valor] || ''}` : ''}</p><span className={`chip ${p.recorrente === false ? '' : 'pool'}`} style={{ marginTop: 6 }}>{p.recorrente === false ? 'Pagamento avulso' : `Recorrente · ${p.frequencia || 'mensal'}`}</span></div>
         </div>
       </header>
 
@@ -44,25 +46,34 @@ export default function Pessoa() {
         {tel && <a className="btn call" href={`tel:${tel}`}><Phone size={18} className="i" />Ligar</a>}
       </div>
 
-      <div className="px stats mt16">
-        <div className="stat"><p className="l">Previsto/mês</p><p className="v num">{brl(prev)}</p></div>
-        <div className="stat"><p className="l" style={{ color: 'var(--ok)' }}>Pago no mês</p><p className="v num">{brl(pago)}</p></div>
-        <div className="stat"><p className="l" style={{ color: 'var(--danger)' }}>Falta</p><p className="v num">{brl(Math.max(0, prev - pago))}</p></div>
-      </div>
+      {p.recorrente === false ? (
+        <div className="px stats two mt16">
+          <div className="stat"><p className="l" style={{ color: 'var(--ok)' }}>Pago no mês</p><p className="v num">{brl(pago)}</p></div>
+          <div className="stat"><p className="l">Pagamentos no mês</p><p className="v num">{doMes.length}</p></div>
+        </div>
+      ) : (
+        <div className="px stats mt16">
+          <div className="stat"><p className="l">Previsto/mês</p><p className="v num">{brl(prev)}</p></div>
+          <div className="stat"><p className="l" style={{ color: 'var(--ok)' }}>Pago no mês</p><p className="v num">{brl(pago)}</p></div>
+          <div className="stat"><p className="l" style={{ color: 'var(--danger)' }}>Falta</p><p className="v num">{brl(Math.max(0, prev - pago))}</p></div>
+        </div>
+      )}
 
       {p.observacoes && <div className="px mt16"><div className="tip"><p className="s" style={{ marginTop: 0 }}>{p.observacoes}</p></div></div>}
 
       <div className="px mt16"><button className="btn primary block" onClick={() => setPagar(true)}>Registrar pagamento</button></div>
 
-      <div className="sec-h mt24"><h2>Últimos pagamentos</h2></div>
+      <div className="sec-h mt24"><h2>Pagamentos</h2>{!todos && <button className="link" onClick={() => setTodos(true)}>Ver histórico completo</button>}</div>
       <div className="px">
         {despesas.length === 0 ? <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nenhum pagamento registrado ainda.</p></div>
           : <div className="list">{despesas.map(d => (
-            <div key={d.id} className="row"><div className="grow"><p className="t">{d.descricao}</p><p className="s">{dataCurta(d.data)}{d.forma_pagamento ? ` · ${d.forma_pagamento}` : ''}</p></div><b className="num">{brl(d.valor)}</b></div>
+            <button key={d.id} type="button" className="row pg-row" onClick={() => setVer(d)}><div className="grow"><p className="t">{d.descricao}</p><p className="s">{dataCurta(d.data)}{d.forma_pagamento ? ` · ${d.forma_pagamento}` : ''}</p>
+              {(d.pagamento_itens || []).length > 1 && <div className="chips" style={{ marginTop: 6 }}>{['base', 'extra', 'abatimento'].map(t => { const n = d.pagamento_itens.filter(i => i.tipo === t).length; return n ? <span key={t} className={`chip ${TIPO_ITEM[t].cls}`}>{n} {TIPO_ITEM[t].txt.toLowerCase()}{n > 1 && t !== 'base' ? 's' : ''}</span> : null })}</div>}</div><b className="num">{brl(d.valor)}</b></button>
           ))}</div>}
       </div>
       <div style={{ height: 12 }} />
-      {pagar && <FolhaDespesa inicial={{ tipo: 'pessoa', pessoa_id: p.id, categoria_id: p.categoria_id || '', descricao: p.funcao || p.nome, valor: p.valor_combinado || '' }} onFechar={() => setPagar(false)} onSalvo={recarregar} />}
+      {pagar && <FolhaPagamento pessoa={p} onFechar={() => setPagar(false)} onSalvo={recarregar} />}
+      {ver && <FolhaVerPagamento despesa={ver} onFechar={() => setVer(null)} onSalvo={recarregar} />}
       {editar && <FolhaPessoa inicial={p} cats={cats} onFechar={() => setEditar(false)} onSalvo={recarregar} />}
     </>
   )

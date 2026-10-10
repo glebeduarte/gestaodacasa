@@ -355,3 +355,31 @@ details.more .inner{padding:0 16px 16px}
   .hero .eyebrow,.hero-label,.hero-sub{color:var(--ink-2)}
   .meander{display:none}
 }
+
+/* Obra: descritivo e checklist */
+.descritivo{white-space:pre-wrap;line-height:1.55;font-size:14.5px;color:var(--ink)}
+.ck-list{display:flex;flex-direction:column;margin-top:10px}
+.ck-row{display:flex;gap:12px;align-items:flex-start;text-align:left;padding:11px 2px;border-bottom:1px solid var(--line, #E6EDF3);background:none;width:100%;font:inherit;color:var(--ink);cursor:pointer}
+.ck-row:last-child{border-bottom:0}
+.ck-box{flex:0 0 24px;height:24px;border-radius:8px;border:2px solid #B9C9D8;display:grid;place-items:center;color:#fff;transition:.15s}
+.ck-row.on .ck-box{background:var(--ok);border-color:var(--ok)}
+.ck-t{flex:1;font-size:14.5px;line-height:1.4}
+.ck-row.on .ck-t{color:var(--muted);text-decoration:line-through}
+.ck-t small{display:block;text-decoration:none;font-size:12px;color:var(--ok);margin-top:2px}
+.ck-add{display:flex;gap:8px;align-items:flex-start;margin-top:10px}
+.ck-add .input{flex:1}
+.ck-edit{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.ck-edit-row{display:flex;gap:8px;align-items:center}
+.ck-edit-row .input{flex:1}
+.ck-dot{flex:0 0 10px;height:10px;border-radius:50%;border:2px solid #B9C9D8}
+.ck-dot.on{background:var(--ok);border-color:var(--ok)}
+/* Pagamentos com itens */
+.pg-itens{display:flex;flex-direction:column;gap:8px}
+.pg-item{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:var(--r-sm);background:var(--surface-2);border-left:4px solid var(--pool)}
+.pg-item.t-extra{border-left-color:var(--ok)}
+.pg-item.t-abatimento{border-left-color:var(--danger)}
+.pg-top{display:flex;justify-content:space-between;align-items:center;min-height:30px}
+.money.sm input{font-size:20px}
+.pg-total{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-radius:var(--r-sm);background:var(--pool-soft);font-weight:700}
+.pg-total b{font-size:20px}
+.pg-row{width:100%;text-align:left;background:none;font:inherit;color:inherit;cursor:pointer}

@@ -18,6 +18,7 @@ export function corAvatar(pessoa) {
 }
 // Valor previsto no mês para uma pessoa
 export function previstoMes(p) {
+  if (p.recorrente === false) return 0
   const v = Number(p.valor_combinado || 0)
   if (p.unidade_valor === 'mes' || p.frequencia === 'mensal') return v
   if (p.frequencia === 'semanal') return v * 4
@@ -49,13 +50,14 @@ export default function Pessoas() {
     const prev = previstoMes(p)
     const obra = obras.find(o => o.empreiteiro_id === p.id)
     let status, chip
-    if (p.frequencia === 'por_obra' || p.unidade_valor === 'obra') { status = 'obra'; chip = obra ? { cls: 'pool', txt: `Obra: ${obra.nome}` } : { cls: '', txt: 'Por obra' } }
+    if (p.recorrente === false) { status = 'avulso'; chip = ultimo ? { cls: '', txt: `Último: ${dataCurta(ultimo.data)}` } : { cls: '', txt: 'Pagamento avulso' } }
+    else if (p.frequencia === 'por_obra' || p.unidade_valor === 'obra') { status = 'obra'; chip = obra ? { cls: 'pool', txt: `Obra: ${obra.nome}` } : { cls: '', txt: 'Por obra' } }
     else if (totalPago >= prev && prev > 0) { status = 'pago'; chip = { cls: 'ok', txt: ultimo ? `Pago em ${dataCurta(ultimo.data)}` : 'Pago' } }
     else { status = 'apagar'; chip = { cls: 'warn', txt: 'A pagar este mês' } }
     return { ...p, prev, totalPago, status, chip, obra }
   })
 
-  const previsto = comStatus.reduce((t, p) => t + (p.status === 'obra' ? 0 : p.prev), 0)
+  const previsto = comStatus.reduce((t, p) => t + (p.status === 'obra' || p.status === 'avulso' ? 0 : p.prev), 0)
   const jaPago = soma(comStatus.map(p => ({ v: p.totalPago })), 'v')
   const falta = Math.max(0, previsto - jaPago)
   const apagar = comStatus.filter(p => p.status === 'apagar').length
@@ -92,7 +94,7 @@ export default function Pessoas() {
             <Link to={`/pessoas/${p.id}`} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
               <div className={`pill-av ${corAvatar(p)}`}>{iniciais(p.nome)}</div>
               <div style={{ flex: 1, minWidth: 0 }}><h3>{p.nome}</h3><p className="sub">{p.funcao}</p></div>
-              <div style={{ textAlign: 'right' }}><p style={{ fontWeight: 800 }} className="num">{brl(p.valor_combinado)}</p><p className="muted">{UNIDADE[p.unidade_valor] || p.frequencia || ''}</p></div>
+              <div style={{ textAlign: 'right' }}><p style={{ fontWeight: 800 }} className="num">{brl(p.valor_combinado)}</p><p className="muted">{UNIDADE[p.unidade_valor] || p.frequencia || ''}</p><span className={`chip ${p.recorrente === false ? '' : 'pool'}`} style={{ marginTop: 4 }}>{p.recorrente === false ? 'Avulso' : 'Recorrente'}</span></div>
             </Link>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, gap: 8 }}>
               {(p.dias_semana || []).length > 0
@@ -103,7 +105,7 @@ export default function Pessoas() {
             <div className="btnrow mt12">
               {tel(p) && <a className="btn sm wa" href={`https://wa.me/55${tel(p)}`} target="_blank" rel="noreferrer"><MessageCircle size={15} className="i" />WhatsApp</a>}
               {tel(p) && <a className="btn sm call" href={`tel:${tel(p)}`}><Phone size={15} className="i" />Ligar</a>}
-              {p.status !== 'pago' && p.status !== 'obra' && <Link className="btn sm primary" to={`/pessoas/${p.id}`}>Pagar</Link>}
+              {p.status !== 'pago' && <Link className="btn sm primary" to={`/pessoas/${p.id}`}>Pagar</Link>}
             </div>
           </div>
         ))}
@@ -115,12 +117,13 @@ export default function Pessoas() {
 }
 
 export function FolhaPessoa({ inicial = {}, cats, onFechar, onSalvo }) {
-  const [f, setF] = useState({ nome: '', funcao: '', categoria_id: '', frequencia: 'mensal', valor_combinado: '', unidade_valor: 'mes', telefone: '', dias_semana: [], forma_pagamento: 'Pix', observacoes: '', ...inicial })
+  const limpo = Object.fromEntries(Object.entries(inicial).filter(([k]) => k !== 'categorias').map(([k, v]) => [k, v ?? (k === 'dias_semana' ? [] : '')]))
+  const [f, setF] = useState({ nome: '', funcao: '', categoria_id: '', recorrente: true, frequencia: 'mensal', valor_combinado: '', unidade_valor: 'mes', telefone: '', dias_semana: [], forma_pagamento: 'Pix', observacoes: '', ...limpo })
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
   const toggleDia = (d) => set('dias_semana', f.dias_semana.includes(d) ? f.dias_semana.filter(x => x !== d) : [...f.dias_semana, d])
   const salvar = async () => {
     if (!f.nome) return
-    const payload = { nome: f.nome, funcao: f.funcao || null, categoria_id: f.categoria_id || null, frequencia: f.frequencia, valor_combinado: f.valor_combinado ? Number(f.valor_combinado) : null, unidade_valor: f.unidade_valor, telefone: f.telefone || null, dias_semana: f.dias_semana, forma_pagamento: f.forma_pagamento, observacoes: f.observacoes || null, ativo: true }
+    const payload = { nome: f.nome, funcao: f.funcao || null, categoria_id: f.categoria_id || null, recorrente: f.recorrente !== false, frequencia: f.recorrente === false ? 'por_demanda' : f.frequencia, valor_combinado: f.valor_combinado ? Number(f.valor_combinado) : null, unidade_valor: f.unidade_valor, telefone: f.telefone || null, dias_semana: f.dias_semana, forma_pagamento: f.forma_pagamento, observacoes: f.observacoes || null, ativo: true }
     if (f.id) await supabase.from('pessoas').update(payload).eq('id', f.id)
     else await supabase.from('pessoas').insert(payload)
     onSalvo(); onFechar()
@@ -138,7 +141,14 @@ export function FolhaPessoa({ inicial = {}, cats, onFechar, onSalvo }) {
           <label className="field" style={{ flex: 1 }}><span className="l">Valor combinado</span><input className="input" inputMode="decimal" value={f.valor_combinado} onChange={e => set('valor_combinado', e.target.value)} /></label>
           <label className="field" style={{ flex: 1 }}><span className="l">Unidade</span><select className="input" value={f.unidade_valor} onChange={e => set('unidade_valor', e.target.value)}>{Object.entries(UNIDADE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
         </div>
-        <label className="field"><span className="l">Frequência</span><select className="input" value={f.frequencia} onChange={e => set('frequencia', e.target.value)}>{['semanal', 'quinzenal', 'mensal', 'por_demanda', 'por_obra'].map(v => <option key={v} value={v}>{v.replace('_', ' ')}</option>)}</select></label>
+        <div className="field"><span className="l">Tipo de pagamento</span>
+          <div className="seg">
+            <button type="button" className={f.recorrente !== false ? 'on' : ''} onClick={() => set('recorrente', true)}>Recorrente</button>
+            <button type="button" className={f.recorrente === false ? 'on' : ''} onClick={() => set('recorrente', false)}>Avulso</button>
+          </div>
+          <p className="muted" style={{ marginTop: 6 }}>{f.recorrente === false ? 'Paga só quando faz um serviço. Não entra no previsto do mês.' : 'Valor fixo combinado, entra no previsto de todo mês.'}</p>
+        </div>
+        {f.recorrente !== false && <label className="field"><span className="l">Frequência</span><select className="input" value={f.frequencia} onChange={e => set('frequencia', e.target.value)}>{['semanal', 'quinzenal', 'mensal', 'por_demanda', 'por_obra'].map(v => <option key={v} value={v}>{v.replace('_', ' ')}</option>)}</select></label>}
         <div className="field"><span className="l">Dias da semana</span><div className="days">{DIAS.map((d, i) => <button key={i} type="button" className={f.dias_semana.includes(DIAS_KEY[i]) ? 'on' : ''} onClick={() => toggleDia(DIAS_KEY[i])} style={{ width: 34, height: 34, borderRadius: 10, fontWeight: 800, fontSize: 12, background: f.dias_semana.includes(DIAS_KEY[i]) ? 'var(--pool-soft)' : 'var(--surface-2)', color: f.dias_semana.includes(DIAS_KEY[i]) ? '#08798C' : '#A8B7C6' }}>{d}</button>)}</div></div>
         <label className="field"><span className="l">Observações</span><textarea className="input" value={f.observacoes} onChange={e => set('observacoes', e.target.value)} /></label>
         <button className="btn primary block" onClick={salvar}>Salvar pessoa</button>
