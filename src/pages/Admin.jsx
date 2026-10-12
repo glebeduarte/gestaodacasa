@@ -12,7 +12,7 @@ import { Sheet } from '../components/ui/Sheet'
 import { useToast } from '../components/ui/Toast'
 
 const ABAS = [['categorias', 'Categorias'], ['pessoas', 'Pessoas'], ['obras', 'Obras']]
-const ICON_LISTA = ['Zap', 'Droplet', 'Waves', 'Leaf', 'BrickWall', 'Sparkles', 'PawPrint', 'Wifi', 'Home', 'Wrench', 'ShieldCheck', 'Flame', 'Trash2', 'Car', 'Utensils', 'Tv', 'Bug', 'Hammer']
+const ICON_LISTA = ['Zap', 'Droplet', 'Waves', 'Leaf', 'BrickWall', 'Sparkles', 'PawPrint', 'Wifi', 'Home', 'Wrench', 'ShieldCheck', 'Flame', 'Trash2', 'Car', 'Utensils', 'Tv', 'Bug', 'Hammer', 'HeartPulse', 'CreditCard']
 
 export default function Admin({ sessao }) {
   const [aba, setAba] = useState('categorias')
@@ -159,7 +159,7 @@ function EditorCategoria({ cat, onFechar, onSalvo }) {
       <div className="stack-y">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><CatTile cat={{ nome, icone, cor }} size="lg" /><input className="input" value={nome} onChange={e => setNome(e.target.value)} style={{ flex: 1 }} placeholder="Nome da categoria" /></div>
         <div><p className="step" style={{ margin: '6px 0 8px' }}>Ícone</p><div className="iconpick">{ICON_LISTA.map(n => { const Ico = ICONES[n]; return <button key={n} type="button" className={icone === n ? 'on' : ''} onClick={() => setIcone(n)}><Ico size={20} className="i" /></button> })}</div></div>
-        <div><p className="step" style={{ margin: '6px 0 8px' }}>Cor</p><div className="colorpick">{CORES.slice(0, 8).map(cls => { const st = catStyle({ cor: cls }); return <button key={cls} type="button" className={cor === cls ? 'on' : ''} onClick={() => setCor(cls)}><span className={cls} style={{ display: 'block', width: '100%', height: '100%', borderRadius: '50%', background: 'var(--c)' }} /></button> })}</div></div>
+        <div><p className="step" style={{ margin: '6px 0 8px' }}>Cor</p><div className="colorpick">{CORES.slice(0, 10).map(cls => { const st = catStyle({ cor: cls }); return <button key={cls} type="button" className={cor === cls ? 'on' : ''} onClick={() => setCor(cls)}><span className={cls} style={{ display: 'block', width: '100%', height: '100%', borderRadius: '50%', background: 'var(--c)' }} /></button> })}</div></div>
         <div className="btnrow">{cat.id && <button className="btn" onClick={arquivar}>Arquivar</button>}{cat.id && <button className="btn" style={{ color: 'var(--danger)' }} onClick={excluir}>Excluir</button>}<button className="btn primary" onClick={salvar}>Salvar</button></div>
       </div>
     </Sheet>

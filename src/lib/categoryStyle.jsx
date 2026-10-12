@@ -1,4 +1,4 @@
-import { Zap, Droplet, Waves, Leaf, BrickWall, PawPrint, Wifi, Tag, Sparkles, Home, Wrench, ShieldCheck, Flame, Trash2, Car, Utensils, Tv, Bug, Hammer } from 'lucide-react'
+import { Zap, Droplet, Waves, Leaf, BrickWall, PawPrint, Wifi, Tag, Sparkles, Home, Wrench, ShieldCheck, Flame, Trash2, Car, Utensils, Tv, Bug, Hammer, HeartPulse, CreditCard } from 'lucide-react'
 
 
 // Mapa padrão por nome normalizado
@@ -15,13 +15,15 @@ const PADRAO = {
   cachorra: { cls: 'c-hanna', icon: 'PawPrint' },
   'internet e seguranca': { cls: 'c-internet', icon: 'Wifi' },
   internet: { cls: 'c-internet', icon: 'Wifi' },
+  saude: { cls: 'c-saude', icon: 'HeartPulse' },
+  'cartao de credito': { cls: 'c-cartao', icon: 'CreditCard' },
 }
 
 // Ícones disponíveis para escolher no editor
-export const ICONES = { Zap, Droplet, Waves, Leaf, BrickWall, Sparkles, PawPrint, Wifi, Home, Wrench, ShieldCheck, Flame, Trash2, Car, Utensils, Tv, Bug, Hammer, Tag }
+export const ICONES = { Zap, Droplet, Waves, Leaf, BrickWall, Sparkles, PawPrint, Wifi, Home, Wrench, ShieldCheck, Flame, Trash2, Car, Utensils, Tv, Bug, Hammer, HeartPulse, CreditCard, Tag }
 
 // Classes de cor disponíveis para escolher (mapeiam para --c/--cs no CSS)
-export const CORES = ['c-energia', 'c-agua', 'c-piscina', 'c-jardim', 'c-estrutura', 'c-diaristas', 'c-hanna', 'c-internet', 'c-obras', 'c-pessoas', 'c-manut', 'c-docs', 'c-estoque', 'c-neutral']
+export const CORES = ['c-energia', 'c-agua', 'c-piscina', 'c-jardim', 'c-estrutura', 'c-diaristas', 'c-hanna', 'c-internet', 'c-saude', 'c-cartao', 'c-obras', 'c-pessoas', 'c-manut', 'c-docs', 'c-estoque', 'c-neutral']
 
 export function catStyle(cat) {
   if (!cat) return { cls: 'c-neutral', Icon: Tag }
