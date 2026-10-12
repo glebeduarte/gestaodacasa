@@ -462,3 +462,26 @@ details.more .inner{padding:0 16px 16px}
 .adiant-top b{font-size:18px;color:#8A6410}
 .adiant-lista{margin-top:8px;display:flex;flex-direction:column;gap:4px;font-size:13px}
 .adiant-lista div{display:flex;justify-content:space-between;color:var(--ink-2,var(--ink))}
+
+/* Casas e módulos */
+.ck-box.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.ck-row.off .ck-t{color:var(--muted);text-decoration:line-through}
+.ck-row.on-sel .ck-t small,.ck-row.off .ck-t small{display:block;text-decoration:none;font-size:12px}
+.opcao{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px;border-radius:var(--r-sm);border:1.5px solid var(--line);background:var(--surface,#fff);font:inherit;color:var(--ink);cursor:pointer}
+.opcao.on{border-color:var(--pool);background:var(--pool-soft)}
+.opcao b{display:block;font-size:14.5px}.opcao small{display:block;font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+.opcao>.i{color:var(--pool)}
+.casa-card{display:flex;align-items:center;gap:14px;text-align:left;width:100%;font:inherit;color:inherit;cursor:pointer}
+.casa-card.on{outline:2px solid var(--pool)}
+.casa-card .grow{flex:1;min-width:0}
+.casa-switch{display:flex;align-items:center;gap:8px;width:100%;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.08);color:inherit;font:inherit;text-align:left;cursor:pointer;margin-bottom:12px}
+.casa-switch small{display:block;opacity:.7;font-size:11.5px}
+.casa-topo{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--pool);background:var(--pool-soft);border-radius:999px;padding:5px 10px;max-width:60vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.aviso-leitura{margin:8px 16px 0;padding:8px 12px;border-radius:10px;background:#FFF8EA;color:#8A6410;font-size:12.5px;font-weight:700}
+.mod-toggle{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.mod-toggle:last-child{border-bottom:0}
+.switch{width:44px;height:26px;border-radius:13px;background:#C9D6E2;position:relative;flex:0 0 auto;transition:.15s;border:0;cursor:pointer}
+.switch::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.15s}
+.switch.on{background:var(--ok)}.switch.on::after{left:21px}
+.item-campos{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:8px;font-size:12.5px}
+.item-campos span{color:var(--muted)}.item-campos b{color:var(--ink);font-weight:700}

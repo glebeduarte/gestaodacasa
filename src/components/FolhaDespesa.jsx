@@ -5,6 +5,7 @@ import { catStyle } from '../lib/categoryStyle'
 import { enviarFotos } from './Upload'
 import { useToast } from './ui/Toast'
 import { hoje, numero } from '../util'
+import { useCasa } from '../lib/casa'
 
 const TIPOS = [
   ['variavel', 'Conta da casa', 'Luz, água, piscina, jardim, internet', 'c-fech'],
@@ -17,6 +18,9 @@ const PAGAMENTOS = ['Pix', 'Dinheiro', 'Cartão', 'Débito automático', 'Boleto
 const ontem = () => new Date(Date.now() - 86400000).toISOString().slice(0, 10)
 
 export function FolhaDespesa({ onFechar, onSalvo, inicial = {} }) {
+  const { casa } = useCasa() || {}
+  const mods = casa?.modulos || []
+  const tiposVisiveis = TIPOS.filter(([v]) => (v !== 'pessoa' || mods.includes('pessoas')) && ((v !== 'obra' && v !== 'material') || mods.includes('obras')))
   const toast = useToast()
   const [cats, setCats] = useState([])
   const [pessoas, setPessoas] = useState([])
@@ -73,7 +77,7 @@ export function FolhaDespesa({ onFechar, onSalvo, inicial = {} }) {
         <div className="px mt24">
           <div className="step"><b>1</b>O que você está registrando?</div>
           <div className="kind">
-            {TIPOS.map(([v, t, s, cls]) => { const { Icon } = catStyle({ cor: cls }); return (
+            {tiposVisiveis.map(([v, t, s, cls]) => { const { Icon } = catStyle({ cor: cls }); return (
               <button key={v} type="button" className={`opt ${f.tipo === v ? 'on' : ''}`} onClick={() => set('tipo', v)}>
                 <span className={`tile t-md ${cls}`}><Icon size={22} className="i" /></span>
                 <div><b>{t}</b><small>{s}</small></div>

@@ -1,4 +1,4 @@
-import { Zap, Droplet, Waves, Leaf, BrickWall, PawPrint, Wifi, Tag, Sparkles, Home, Wrench, ShieldCheck, Flame, Trash2, Car, Utensils, Tv, Bug, Hammer, HeartPulse, CreditCard } from 'lucide-react'
+import { Zap, Droplet, Waves, Leaf, BrickWall, PawPrint, Wifi, Tag, Sparkles, Home, Wrench, ShieldCheck, Flame, Trash2, Car, Utensils, Tv, Bug, Hammer, HeartPulse, CreditCard, Building2, Building, Tractor } from 'lucide-react'
 
 
 // Mapa padrão por nome normalizado
@@ -20,7 +20,7 @@ const PADRAO = {
 }
 
 // Ícones disponíveis para escolher no editor
-export const ICONES = { Zap, Droplet, Waves, Leaf, BrickWall, Sparkles, PawPrint, Wifi, Home, Wrench, ShieldCheck, Flame, Trash2, Car, Utensils, Tv, Bug, Hammer, HeartPulse, CreditCard, Tag }
+export const ICONES = { Zap, Droplet, Waves, Leaf, BrickWall, Sparkles, PawPrint, Wifi, Home, Wrench, ShieldCheck, Flame, Trash2, Car, Utensils, Tv, Bug, Hammer, HeartPulse, CreditCard, Building2, Building, Tractor, Tag }
 
 // Classes de cor disponíveis para escolher (mapeiam para --c/--cs no CSS)
 export const CORES = ['c-energia', 'c-agua', 'c-piscina', 'c-jardim', 'c-estrutura', 'c-diaristas', 'c-hanna', 'c-internet', 'c-saude', 'c-cartao', 'c-obras', 'c-pessoas', 'c-manut', 'c-docs', 'c-estoque', 'c-neutral']

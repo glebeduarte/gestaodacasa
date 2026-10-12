@@ -41,11 +41,25 @@ function envolver(builder) {
     },
   })
 }
+// Casa em uso: toda leitura das tabelas da casa é filtrada por ela e toda gravação leva o casa_id
+const TABELAS_CASA = new Set(['categorias', 'contas', 'custos_fixos', 'despesas', 'documentos', 'estoque_itens', 'importacoes', 'manutencao_execucoes', 'manutencoes', 'obra_atualizacoes', 'obra_itens', 'obra_orcamentos', 'obras', 'pagamento_itens', 'pessoas', 'modulo_itens'])
+let casaAtual = null
+export const definirCasaAtual = (id) => { casaAtual = id }
+export const casaAtualId = () => casaAtual
+const comCasa = (dados) => {
+  if (!casaAtual) return dados
+  const pôr = (o) => (o && typeof o === 'object' && !o.casa_id ? { ...o, casa_id: casaAtual } : o)
+  return Array.isArray(dados) ? dados.map(pôr) : pôr(dados)
+}
+
 const fromOriginal = cliente.from.bind(cliente)
 cliente.from = (tabela) => new Proxy(fromOriginal(tabela), {
   get(alvo, prop) {
     const v = alvo[prop]
+    const daCasa = TABELAS_CASA.has(tabela) && casaAtual
+    if (daCasa && (prop === 'insert' || prop === 'upsert')) return (dados, ...rest) => envolver(v.call(alvo, comCasa(dados), ...rest))
     if (ESCRITA.has(prop)) return (...args) => envolver(v.apply(alvo, args))
+    if (daCasa && prop === 'select') return (...args) => v.apply(alvo, args).eq('casa_id', casaAtual)
     return typeof v === 'function' ? v.bind(alvo) : v
   },
 })

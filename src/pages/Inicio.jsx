@@ -6,6 +6,7 @@ import { brl, mesAtual, semanasDesde, dataExtenso, saudacao, nomeUsuario, inicia
 import { CatTile } from '../lib/categoryStyle'
 import { Meander } from '../components/ui/Meander'
 import { useToast } from '../components/ui/Toast'
+import { useCasa } from '../lib/casa'
 import { ContaLinha } from '../components/FolhaConta'
 import { useAcoesConta } from './Contas'
 import { statusConta, gerarContasMes } from '../lib/contas'
@@ -13,6 +14,8 @@ import { Plus } from 'lucide-react'
 
 export default function Inicio({ sessao }) {
   const toast = useToast()
+  const { casa } = useCasa()
+  const mods = casa?.modulos || []
   const email = sessao?.user?.email
   const { dados, recarregar } = useDados(async () => {
     const em7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10)
@@ -67,7 +70,7 @@ export default function Inicio({ sessao }) {
   return (
     <>
       <header className="hdr">
-        <div><p className="eyebrow">{dataExtenso()}</p><h1>{saudacao()}{email ? `, ${nomeUsuario(sessao.user)}` : ''}</h1></div>
+        <div><p className="eyebrow">{casa?.nome} · {dataExtenso()}</p><h1>{saudacao()}{email ? `, ${nomeUsuario(sessao.user)}` : ''}</h1></div>
         <span className="avatar">{iniciais(nomeUsuario(sessao?.user))}</span>
       </header>
 
@@ -138,7 +141,7 @@ export default function Inicio({ sessao }) {
           </div>
         </section>
 
-        {ativas.length > 0 && (
+        {mods.includes('obras') && ativas.length > 0 && (
           <section className="sec s-obra">
             <div className="sec-h"><h2>Obra em andamento</h2><Link to="/obras">Ver obras <ChevronRight size={16} className="i" /></Link></div>
             <div className="px">
@@ -167,7 +170,7 @@ export default function Inicio({ sessao }) {
           </section>
         )}
 
-        {manut.length > 0 && (
+        {mods.includes('manutencoes') && manut.length > 0 && (
           <section className="sec s-manut">
             <div className="sec-h"><h2>Próximos cuidados</h2><Link to="/manutencoes">Agenda <ChevronRight size={16} className="i" /></Link></div>
             <div className="px"><div className="list">

@@ -8,14 +8,17 @@ import { FolhaPessoa, corAvatar } from './Pessoas'
 import { FolhaObra } from './Obras'
 import { FolhaFixo } from './Categoria'
 import { excluirOuArquivar } from '../lib/crud'
+import { AjustesCasa } from '../components/AjustesCasa'
+import { useCasa } from '../lib/casa'
 import { Sheet } from '../components/ui/Sheet'
 import { useToast } from '../components/ui/Toast'
 
-const ABAS = [['categorias', 'Categorias'], ['pessoas', 'Pessoas'], ['obras', 'Obras']]
+const ABAS = [['casa', 'Casa'], ['categorias', 'Categorias'], ['pessoas', 'Pessoas'], ['obras', 'Obras']]
 const ICON_LISTA = ['Zap', 'Droplet', 'Waves', 'Leaf', 'BrickWall', 'Sparkles', 'PawPrint', 'Wifi', 'Home', 'Wrench', 'ShieldCheck', 'Flame', 'Trash2', 'Car', 'Utensils', 'Tv', 'Bug', 'Hammer', 'HeartPulse', 'CreditCard']
 
 export default function Admin({ sessao }) {
-  const [aba, setAba] = useState('categorias')
+  const [aba, setAba] = useState('casa')
+  const { casa } = useCasa()
   const [editCat, setEditCat] = useState(null)
   const [novaPessoa, setNovaPessoa] = useState(false)
   const [editPessoa, setEditPessoa] = useState(null)
@@ -54,7 +57,9 @@ export default function Admin({ sessao }) {
   return (
     <>
       <header className="hdr"><div><p className="eyebrow">Configurações</p><h1>Ajustes</h1></div></header>
-      <div className="hscroll">{ABAS.map(([v, t]) => <button key={v} className={`pick ${aba === v ? 'on' : ''}`} onClick={() => setAba(v)}>{t}</button>)}</div>
+      <div className="hscroll">{ABAS.filter(([v]) => (v !== 'pessoas' || casa?.modulos?.includes('pessoas')) && (v !== 'obras' || casa?.modulos?.includes('obras'))).map(([v, t]) => <button key={v} className={`pick ${aba === v ? 'on' : ''}`} onClick={() => setAba(v)}>{t}</button>)}</div>
+
+      {aba === 'casa' && casa && <AjustesCasa />}
 
       {aba === 'categorias' && (
         <section className="px mt16">

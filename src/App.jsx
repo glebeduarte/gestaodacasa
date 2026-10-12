@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
 import { supabase } from './supabase'
-import { Home, LayoutGrid, Plus, Hammer, Menu, Users, Wrench, FileText, Package, BarChart3, Settings, LogOut, History, Receipt } from 'lucide-react'
+import { Home, LayoutGrid, Plus, Hammer, Menu, Users, Wrench, FileText, Package, BarChart3, Settings, LogOut, History, Receipt, ArrowLeftRight, ChevronDown } from 'lucide-react'
 import { q } from './hooks'
 import { nomeUsuario, iniciais } from './util'
 import { ToastProvider } from './components/ui/Toast'
@@ -22,38 +22,44 @@ import Estoque from './pages/Estoque'
 import Fechamento from './pages/Fechamento'
 import Contas from './pages/Contas'
 import Importar from './pages/Importar'
+import Casas, { NovaCasa, ICONE_MOD } from './pages/Casas'
+import Modulo from './pages/Modulo'
+import { CasaProvider, useCasa } from './lib/casa'
+import { MODULOS, nomeTipo } from './lib/tipos'
 
-// Itens do menu "Mais" (celular) e da sidebar (desktop)
-const MAIS = [
-  { to: '/contas', label: 'Contas', Icon: Receipt, cls: 'c-fech', key: 'contas' },
-  { to: '/pessoas', label: 'Pessoas', Icon: Users, cls: 'c-pessoas' },
-  { to: '/manutencoes', label: 'Manutenções', Icon: Wrench, cls: 'c-manut', key: 'manut' },
-  { to: '/documentos', label: 'Documentos', Icon: FileText, cls: 'c-docs', key: 'docs' },
-  { to: '/estoque', label: 'Estoque', Icon: Package, cls: 'c-estoque', key: 'estoque' },
-  { to: '/fechamento', label: 'Fechamento', Icon: BarChart3, cls: 'c-fech' },
-  { to: '/admin', label: 'Ajustes', Icon: Settings, cls: 'c-neutral' },
-]
+const BASE_MOD = { pessoas: { Icon: Users, cls: 'c-pessoas' }, obras: { Icon: Hammer, cls: 'c-obras' }, manutencoes: { Icon: Wrench, cls: 'c-manut', key: 'manut' }, estoque: { Icon: Package, cls: 'c-estoque', key: 'estoque' } }
+const NOMES_CURTOS = { pessoas: 'Pessoas', obras: 'Obras', manutencoes: 'Manutenções', estoque: 'Estoque' }
 
-// Sidebar do desktop, em grupos: visão geral / o que precisa de cuidado / ajustes
-const SIDE = [
-  [
-    { to: '/', label: 'Início', Icon: Home, end: true },
-    { to: '/contas', label: 'Contas', Icon: Receipt, key: 'contas' },
-    { to: '/categorias', label: 'Categorias', Icon: LayoutGrid },
-    { to: '/historico', label: 'Histórico', Icon: History },
-    { to: '/fechamento', label: 'Fechamento', Icon: BarChart3 },
-  ],
-  [
-    { to: '/obras', label: 'Obras', Icon: Hammer },
-    { to: '/pessoas', label: 'Pessoas', Icon: Users },
-    { to: '/manutencoes', label: 'Manutenções', Icon: Wrench, key: 'manut' },
-    { to: '/estoque', label: 'Estoque', Icon: Package, key: 'estoque' },
-    { to: '/documentos', label: 'Documentos', Icon: FileText, key: 'docs' },
-  ],
-  [
-    { to: '/admin', label: 'Ajustes', Icon: Settings },
-  ],
-]
+// Monta os menus a partir dos módulos ligados na casa
+function menus(casa) {
+  const mods = (casa?.modulos || []).filter(m => MODULOS[m])
+  const itensMod = mods.map(m => {
+    const b = BASE_MOD[m]; const I = b?.Icon || ICONE_MOD[MODULOS[m].icone] || Wrench
+    return { to: MODULOS[m].rota, label: NOMES_CURTOS[m] || MODULOS[m].nome, Icon: I, cls: b?.cls || 'c-docs', key: b?.key }
+  })
+  const MAIS = [
+    { to: '/contas', label: 'Contas', Icon: Receipt, cls: 'c-fech', key: 'contas' },
+    ...itensMod,
+    { to: '/documentos', label: 'Documentos', Icon: FileText, cls: 'c-docs', key: 'docs' },
+    { to: '/fechamento', label: 'Fechamento', Icon: BarChart3, cls: 'c-fech' },
+    { to: '/casas', label: 'Minhas casas', Icon: ArrowLeftRight, cls: 'c-piscina' },
+    { to: '/admin', label: 'Ajustes', Icon: Settings, cls: 'c-neutral' },
+  ]
+  const SIDE = [
+    [
+      { to: '/', label: 'Início', Icon: Home, end: true },
+      { to: '/contas', label: 'Contas', Icon: Receipt, key: 'contas' },
+      { to: '/categorias', label: 'Categorias', Icon: LayoutGrid },
+      { to: '/historico', label: 'Histórico', Icon: History },
+      { to: '/fechamento', label: 'Fechamento', Icon: BarChart3 },
+    ],
+    [...itensMod, { to: '/documentos', label: 'Documentos', Icon: FileText, key: 'docs' }],
+    [{ to: '/admin', label: 'Ajustes', Icon: Settings }],
+  ]
+  // 4º botão da barra inferior: o primeiro módulo ligado (ou Contas)
+  const atalho = itensMod[0] || { to: '/contas', label: 'Contas', Icon: Receipt }
+  return { MAIS, SIDE, atalho }
+}
 
 function Layout({ children, sessao }) {
   const [despesa, setDespesa] = useState(null)
@@ -61,6 +67,8 @@ function Layout({ children, sessao }) {
   const [pend, setPend] = useState({ manut: 0, docs: 0, estoque: 0, total: 0 })
   const loc = useLocation()
   useEffect(() => { q.pendencias().then(setPend); setMais(false) }, [loc.pathname])
+  const { casa } = useCasa()
+  const { MAIS, SIDE, atalho } = menus(casa)
   const naMais = MAIS.some(m => loc.pathname.startsWith(m.to))
   const email = sessao?.user?.email
   const nome = nomeUsuario(sessao?.user)
@@ -68,7 +76,8 @@ function Layout({ children, sessao }) {
   return (
     <div className="app">
       <aside className="desk-side" aria-label="Menu principal">
-        <div className="logo">Gestão da Casa<small>Casa Hylana</small></div>
+        <div className="logo">Gestão Doméstica</div>
+        <NavLink to="/casas" className="casa-switch"><ArrowLeftRight size={16} className="i" /><div style={{ minWidth: 0 }}><b>{casa?.nome}</b><small>{nomeTipo(casa?.tipo)} · trocar de casa</small></div></NavLink>
         <button className="side-cta" onClick={() => setDespesa({})}><Plus size={18} strokeWidth={2.6} className="i" />Registrar gasto</button>
         {SIDE.map((grupo, gi) => (
           <div key={gi}>
@@ -89,6 +98,7 @@ function Layout({ children, sessao }) {
       </aside>
 
       <main className="desk-main">
+        {casa?.papel === 'leitura' && <div className="aviso-leitura">Você tem acesso só de leitura nesta casa.</div>}
         <div className="inner-wrap" key={loc.pathname}>{children}</div>
       </main>
 
@@ -96,7 +106,7 @@ function Layout({ children, sessao }) {
         <NavLink to="/" end className={({ isActive }) => isActive ? 'on' : ''}><Home size={23} className="i" /><span>Início</span></NavLink>
         <NavLink to="/categorias" className={({ isActive }) => isActive ? 'on' : ''}><LayoutGrid size={23} className="i" /><span>Categorias</span></NavLink>
         <a href="#" className="fab" aria-label="Registrar gasto" onClick={e => { e.preventDefault(); setDespesa({}) }}><span><Plus size={28} strokeWidth={2.4} className="i" /></span><em>Registrar</em></a>
-        <NavLink to="/obras" className={({ isActive }) => isActive ? 'on' : ''}><Hammer size={23} className="i" /><span>Obras</span></NavLink>
+        <NavLink to={atalho.to} className={({ isActive }) => isActive ? 'on' : ''}><atalho.Icon size={23} className="i" /><span>{atalho.label}</span></NavLink>
         <button className={naMais ? 'on' : ''} onClick={() => setMais(true)}><Menu size={23} className="i" /><span>Mais</span>{pend.total > 0 && <span className="navbadge">{pend.total}</span>}</button>
       </nav>
 
@@ -134,31 +144,49 @@ export default function App() {
   if (!sessao) return <Login />
   return (
     <ToastProvider>
-      <BrowserRouter>
-        <Layout sessao={sessao}>
-          <Routes>
-            <Route path="/" element={<Inicio sessao={sessao} />} />
-            <Route path="/categorias" element={<Categorias />} />
-            <Route path="/categorias/:id" element={<Categoria />} />
-            <Route path="/casa" element={<Navigate to="/categorias" />} />
-            <Route path="/casa/:id" element={<Categoria />} />
-            <Route path="/obras" element={<Obras />} />
-            <Route path="/obras/:id" element={<Obra />} />
-            <Route path="/pessoas" element={<Pessoas />} />
-            <Route path="/pessoas/:id" element={<Pessoa />} />
-            <Route path="/historico" element={<Registros />} />
-            <Route path="/registros" element={<Navigate to="/historico" />} />
-            <Route path="/manutencoes" element={<Manutencoes />} />
-            <Route path="/documentos" element={<Documentos />} />
-            <Route path="/estoque" element={<Estoque />} />
-            <Route path="/contas" element={<Contas />} />
-            <Route path="/importar" element={<Importar />} />
-            <Route path="/fechamento" element={<Fechamento />} />
-            <Route path="/admin" element={<Admin sessao={sessao} />} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </Layout>
-      </BrowserRouter>
+      <CasaProvider sessao={sessao}>
+        <BrowserRouter>
+          <Rotas sessao={sessao} />
+        </BrowserRouter>
+      </CasaProvider>
     </ToastProvider>
+  )
+}
+
+function Rotas({ sessao }) {
+  const { casas, casa } = useCasa()
+  if (casas === null) return <div className="carregando">Carregando…</div>
+  if (!casa) return (
+    <div className="app sem-casa"><main className="desk-main"><div className="inner-wrap">
+      <Routes><Route path="*" element={<NovaCasa />} /></Routes>
+    </div></main></div>
+  )
+  const mods = casa.modulos || []
+  return (
+    <Layout sessao={sessao}>
+      <Routes key={casa.id}>
+        <Route path="/" element={<Inicio sessao={sessao} />} />
+        <Route path="/casas" element={<Casas />} />
+        <Route path="/casas/nova" element={<NovaCasa />} />
+        <Route path="/categorias" element={<Categorias />} />
+        <Route path="/categorias/:id" element={<Categoria />} />
+        <Route path="/casa/:id" element={<Categoria />} />
+        {mods.includes('obras') && <Route path="/obras" element={<Obras />} />}
+        {mods.includes('obras') && <Route path="/obras/:id" element={<Obra />} />}
+        {mods.includes('pessoas') && <Route path="/pessoas" element={<Pessoas />} />}
+        {mods.includes('pessoas') && <Route path="/pessoas/:id" element={<Pessoa />} />}
+        {mods.includes('manutencoes') && <Route path="/manutencoes" element={<Manutencoes />} />}
+        {mods.includes('estoque') && <Route path="/estoque" element={<Estoque />} />}
+        <Route path="/m/:mod" element={<Modulo />} />
+        <Route path="/historico" element={<Registros />} />
+        <Route path="/registros" element={<Navigate to="/historico" />} />
+        <Route path="/documentos" element={<Documentos />} />
+        <Route path="/contas" element={<Contas />} />
+        <Route path="/importar" element={<Importar />} />
+        <Route path="/fechamento" element={<Fechamento />} />
+        <Route path="/admin" element={<Admin sessao={sessao} />} />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </Layout>
   )
 }
