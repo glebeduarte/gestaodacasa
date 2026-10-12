@@ -146,7 +146,7 @@ export default function Inicio({ sessao }) {
             <div className="sec-h"><h2>Obra em andamento</h2><Link to="/obras">Ver obras <ChevronRight size={16} className="i" /></Link></div>
             <div className="px">
               {ativas.slice(0, 1).map(o => {
-                const pago = soma(despesas.filter(d => d.obra_id === o.id && d.tipo === 'obra'))
+                const pago = soma(despesas.filter(d => d.obra_id === o.id && d.tipo !== 'material'))
                 const sem = semanasDesde(o.data_inicio)
                 let totalSem = null, pctTempo = 50
                 if (o.data_inicio && o.prazo_previsto) { totalSem = Math.max(1, Math.round((new Date(o.prazo_previsto) - new Date(o.data_inicio)) / (7 * 86400000))); pctTempo = Math.min(100, Math.round(sem / totalSem * 100)) }

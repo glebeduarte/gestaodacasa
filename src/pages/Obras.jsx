@@ -24,7 +24,7 @@ export default function Obras() {
   })
   if (!dados) return <p className="carregando">Carregando…</p>
   const { obras, cats, pessoas, despesas, itens } = dados
-  const pagoDe = (id) => soma(despesas.filter(d => d.obra_id === id && d.tipo === 'obra'))
+  const pagoDe = (id) => soma(despesas.filter(d => d.obra_id === id && d.tipo !== 'material'))
   const ordemStatus = (s) => (ABERTAS.includes(s) ? 0 : s === 'concluida' ? 1 : 2)
   const todas = [...obras].sort((a, b) => ordemStatus(a.status) - ordemStatus(b.status))
   const semPagamento = todas.filter(o => !despesas.some(d => d.obra_id === o.id))
@@ -68,7 +68,7 @@ export default function Obras() {
                 <div className="stats mt16">
                   <div className="stat" style={{ boxShadow: 'none', background: 'var(--surface-2)' }}><p className="l">Combinado</p><p className="v num">{brlCurto(o.orcamento_total)}</p></div>
                   <div className="stat" style={{ boxShadow: 'none', background: 'var(--surface-2)' }}><p className="l">Pago</p><p className="v num">{brlCurto(pago)}</p></div>
-                  <div className="stat" style={{ boxShadow: 'none', background: 'var(--surface-2)' }}><p className="l">Entrega</p><p className="v">{o.prazo_previsto ? dataCurta(o.prazo_previsto) : '—'}</p></div>
+                  <div className="stat" style={{ boxShadow: 'none', background: 'var(--surface-2)' }}><p className="l">Falta pagar</p><p className="v num" style={{ color: pago > o.orcamento_total ? 'var(--danger)' : 'inherit' }}>{pago > o.orcamento_total ? `+${brlCurto(pago - o.orcamento_total)}` : brlCurto(o.orcamento_total - pago)}</p></div>
                 </div>
                 {pctTempo !== null && <div className="mt12"><div className="barlabel"><span>Tempo</span><b>{pctTempo}%</b></div><div className="bar"><i style={{ width: pctTempo + '%', '--b': 'var(--pool)' }} /></div></div>}
                 <div className="mt8"><div className="barlabel"><span>Dinheiro</span><b>{pctDinheiro}%</b></div><div className="bar"><i style={{ width: pctDinheiro + '%', '--b': 'var(--warn)' }} /></div></div>

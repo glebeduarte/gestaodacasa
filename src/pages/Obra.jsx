@@ -44,9 +44,14 @@ export default function Obra() {
   const pctCk = itens.length ? Math.round(feitos / itens.length * 100) : 0
   const itensVis = filtroCk === 'pendentes' ? itens.filter(i => !i.concluido) : filtroCk === 'feitos' ? itens.filter(i => i.concluido) : itens
 
-  const pago = soma(despesas.filter(d => d.tipo === 'obra'))
+  const pagamentos = despesas.filter(d => d.tipo !== 'material')
+  const pago = soma(pagamentos)
+  // saldo que restava depois de cada pagamento (do mais antigo para o mais recente)
+  const saldoApos = {}
+  if (o?.orcamento_total) { let acc = 0; [...pagamentos].sort((a, b) => (a.data + a.criado_em).localeCompare(b.data + b.criado_em)).forEach(d => { acc += Number(d.valor); saldoApos[d.id] = Number(o.orcamento_total) - acc }) }
   const material = soma(despesas.filter(d => d.tipo === 'material'))
   const falta = o.orcamento_total ? Math.max(0, o.orcamento_total - pago) : null
+  const excedente = o.orcamento_total ? Math.max(0, pago - o.orcamento_total) : 0
   const pct = o.orcamento_total ? Math.min(100, Math.round(pago / o.orcamento_total * 100)) : null
   const sem = semanasDesde(o.data_inicio)
   const totalSem = semanasTotal(o.data_inicio, o.prazo_previsto)
@@ -94,7 +99,7 @@ export default function Obra() {
             <div className="barlabel"><span>Pago</span><span><b className="num">{brl(pago)}</b> de {brl(o.orcamento_total)}</span></div>
             <div className="bar" style={{ height: 12 }}><i style={{ width: pct + '%', '--b': 'linear-gradient(90deg,var(--pool),var(--primary))' }} /></div>
             <div className="stats two mt12">
-              <div className="stat" style={{ boxShadow: 'none', background: 'var(--surface-2)' }}><p className="l">Falta pagar</p><p className="v num">{brl(falta)}</p></div>
+              <div className="stat" style={{ boxShadow: 'none', background: 'var(--surface-2)' }}><p className="l">{excedente > 0 ? 'Acima do combinado' : 'Falta pagar'}</p><p className="v num" style={{ color: excedente > 0 ? 'var(--danger)' : 'inherit' }}>{brl(excedente > 0 ? excedente : falta)}</p></div>
               <div className="stat" style={{ boxShadow: 'none', background: 'var(--surface-2)' }}><p className="l">Falta de prazo</p><p className="v">{diasRest !== null ? `${diasRest} dias` : '—'}</p></div>
             </div>
           </>) : <div className="note"><b>Sem orçamento definido</b>Registre um orçamento por escrito e aprove para acompanhar o quanto já foi pago.</div>}
@@ -154,7 +159,8 @@ export default function Obra() {
         <div className="px">{despesas.length === 0 ? <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nenhum pagamento ou material registrado ainda.</p></div>
           : <div className="list">{despesas.map(d => (
             <button key={d.id} type="button" className="row" onClick={() => setEditDespesa(d)}><span className={`tile t-md ${d.tipo === 'material' ? 'c-estoque' : 'c-obras'}`}>{d.tipo === 'material' ? <Package size={22} className="i" /> : <Hammer size={22} className="i" />}</span>
-              <div className="grow"><p className="t">{d.descricao}</p><p className="s">{dataCurta(d.data)}{d.forma_pagamento ? ` · ${d.forma_pagamento}` : ''}{d.fotos?.length ? ' · nota anexada' : ''}</p></div>
+              <div className="grow"><p className="t">{d.descricao}</p><p className="s">{dataCurta(d.data)}{d.forma_pagamento ? ` · ${d.forma_pagamento}` : ''}{d.fotos?.length ? ' · nota anexada' : ''}</p>
+                {saldoApos[d.id] !== undefined && <p className="s" style={{ color: saldoApos[d.id] < 0 ? 'var(--danger)' : 'var(--ink-2)', fontWeight: 700 }}>{saldoApos[d.id] > 0 ? `Faltava ${brl(saldoApos[d.id])} após este` : saldoApos[d.id] === 0 ? 'Quitou o combinado' : `Passou ${brl(-saldoApos[d.id])} do combinado`}</p>}</div>
               <p className="num" style={{ fontWeight: 800 }}>{brl(d.valor)}</p></button>
           ))}</div>}</div>
       </section>
