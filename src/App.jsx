@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
 import { supabase } from './supabase'
-import { Home, LayoutGrid, Plus, Hammer, Menu, Users, Wrench, FileText, Package, BarChart3, Settings, LogOut, History } from 'lucide-react'
+import { Home, LayoutGrid, Plus, Hammer, Menu, Users, Wrench, FileText, Package, BarChart3, Settings, LogOut, History, Receipt } from 'lucide-react'
 import { q } from './hooks'
 import { primeiroNome, iniciais } from './util'
 import { ToastProvider } from './components/ui/Toast'
@@ -20,9 +20,11 @@ import Manutencoes from './pages/Manutencoes'
 import Documentos from './pages/Documentos'
 import Estoque from './pages/Estoque'
 import Fechamento from './pages/Fechamento'
+import Contas from './pages/Contas'
 
 // Itens do menu "Mais" (celular) e da sidebar (desktop)
 const MAIS = [
+  { to: '/contas', label: 'Contas', Icon: Receipt, cls: 'c-fech', key: 'contas' },
   { to: '/pessoas', label: 'Pessoas', Icon: Users, cls: 'c-pessoas' },
   { to: '/manutencoes', label: 'Manutenções', Icon: Wrench, cls: 'c-manut', key: 'manut' },
   { to: '/documentos', label: 'Documentos', Icon: FileText, cls: 'c-docs', key: 'docs' },
@@ -35,6 +37,7 @@ const MAIS = [
 const SIDE = [
   [
     { to: '/', label: 'Início', Icon: Home, end: true },
+    { to: '/contas', label: 'Contas', Icon: Receipt, key: 'contas' },
     { to: '/categorias', label: 'Categorias', Icon: LayoutGrid },
     { to: '/historico', label: 'Histórico', Icon: History },
     { to: '/fechamento', label: 'Fechamento', Icon: BarChart3 },
@@ -147,6 +150,7 @@ export default function App() {
             <Route path="/manutencoes" element={<Manutencoes />} />
             <Route path="/documentos" element={<Documentos />} />
             <Route path="/estoque" element={<Estoque />} />
+            <Route path="/contas" element={<Contas />} />
             <Route path="/fechamento" element={<Fechamento />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<Navigate to="/" />} />

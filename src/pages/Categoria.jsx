@@ -10,6 +10,8 @@ import { FolhaDespesa } from '../components/FolhaDespesa'
 import { Sheet } from '../components/ui/Sheet'
 import { useToast } from '../components/ui/Toast'
 import { abrirDocumento } from './Documentos'
+import { ContaLinha } from '../components/FolhaConta'
+import { useAcoesConta } from './Contas'
 
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
@@ -21,18 +23,20 @@ export default function Categoria() {
 
   const { dados, recarregar } = useDados(async () => {
     const seis = new Date(); seis.setMonth(seis.getMonth() - 5); seis.setDate(1)
-    const [c, fixos, pessoas, despesas, docs] = await Promise.all([
+    const [c, fixos, pessoas, despesas, docs, contas] = await Promise.all([
       supabase.from('categorias').select('*').eq('id', id).single().then(r => r.data),
       supabase.from('custos_fixos').select('*, pessoas(nome)').eq('categoria_id', id).eq('ativo', true).then(r => r.data || []),
       supabase.from('pessoas').select('id,nome,funcao').eq('ativo', true).order('nome').then(r => r.data || []),
       supabase.from('despesas').select('*, pessoas(nome), obras(nome)').eq('categoria_id', id).gte('data', seis.toISOString().slice(0, 10)).order('data', { ascending: false }).then(r => r.data || []),
       supabase.from('documentos').select('id,nome,arquivo_url,validade').eq('categoria_id', id).then(r => r.data || []),
+      supabase.from('contas').select('*, categorias(*)').eq('categoria_id', id).order('vencimento', { ascending: false }).limit(24).then(r => r.data || [], () => []),
     ])
-    return { c, fixos, pessoas, despesas, docs }
+    return { c, fixos, pessoas, despesas, docs, contas }
   }, [id])
 
+  const acoesConta = useAcoesConta(recarregar)
   if (!dados) return <p className="carregando">Carregando…</p>
-  const { c, fixos, pessoas, despesas, docs } = dados
+  const { c, fixos, pessoas, despesas, docs, contas } = dados
   const { ini, fim } = mesAtual()
   const doMes = despesas.filter(d => d.data >= ini && d.data <= fim)
   const totalMes = soma(doMes)
@@ -75,6 +79,12 @@ export default function Categoria() {
           </div>
         </div>
       </section>
+
+      <div className="sec-h mt24"><h2>Contas</h2><button className="link" onClick={() => acoesConta.abrirNova({ categoria_id: id })}>+ Adicionar</button></div>
+      <div className="px stack-y">
+        {contas.length === 0 ? <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nenhuma conta nesta categoria ainda.</p></div>
+          : contas.map(ct => <ContaLinha key={ct.id} c={ct} onAbrir={acoesConta.abrir} onPagar={acoesConta.pagar} />)}
+      </div>
 
       <div className="sec-h mt24"><h2>Custos fixos</h2><button className="link" onClick={() => setFixoAberto(true)}>+ Adicionar</button></div>
       <div className="px stack-y">
@@ -119,6 +129,7 @@ export default function Categoria() {
 
       <div style={{ height: 12 }} />
       {despesaAberta && <FolhaDespesa inicial={despesaAberta} onFechar={() => setDespesaAberta(null)} onSalvo={recarregar} />}
+      {acoesConta.folhas}
       {fixoAberto && <FolhaFixo categoria_id={id} pessoas={pessoas} onFechar={() => setFixoAberto(false)} onSalvo={recarregar} />}
     </>
   )

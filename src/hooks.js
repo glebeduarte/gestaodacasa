@@ -29,11 +29,12 @@ export const q = {
   pendencias: async () => {
     const hoje = new Date().toISOString().slice(0, 10)
     const em30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
-    const [manut, docs, estoque] = await Promise.all([
+    const [manut, docs, estoque, contas] = await Promise.all([
       supabase.from('manutencoes').select('id,proxima').eq('ativo', true).not('proxima', 'is', null).lte('proxima', hoje).then(r => (r.data || []).length),
       supabase.from('documentos').select('id,validade').not('validade', 'is', null).lte('validade', em30).then(r => (r.data || []).length),
       supabase.from('estoque_itens').select('id,quantidade,minimo').eq('ativo', true).then(r => (r.data || []).filter(e => Number(e.quantidade) <= Number(e.minimo)).length),
+      supabase.from('contas').select('id').is('pago_em', null).lt('vencimento', hoje).then(r => (r.data || []).length, () => 0),
     ])
-    return { manut, docs, estoque, total: manut + docs + estoque }
+    return { manut, docs, estoque, contas, total: manut + docs + estoque + contas }
   },
 }

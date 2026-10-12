@@ -6,6 +6,10 @@ import { brl, mesAtual, semanasDesde, dataExtenso, saudacao, primeiroNome, inici
 import { CatTile } from '../lib/categoryStyle'
 import { Meander } from '../components/ui/Meander'
 import { useToast } from '../components/ui/Toast'
+import { ContaLinha } from '../components/FolhaConta'
+import { useAcoesConta } from './Contas'
+import { statusConta, gerarContasMes } from '../lib/contas'
+import { Plus } from 'lucide-react'
 
 export default function Inicio({ sessao }) {
   const toast = useToast()
@@ -13,16 +17,23 @@ export default function Inicio({ sessao }) {
   const { dados, recarregar } = useDados(async () => {
     const em7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10)
     const hj = new Date().toISOString().slice(0, 10)
-    const [categorias, despesas, obras, fixos, pessoas, manut, estoque] = await Promise.all([
+    await gerarContasMes()
+    const [categorias, despesas, obras, fixos, pessoas, manut, estoque, contas] = await Promise.all([
       q.categorias(), q.despesasMes(), q.obras(), q.custosFixos(), q.pessoas(),
       supabase.from('manutencoes').select('id,nome,proxima,categoria_id').eq('ativo', true).not('proxima', 'is', null).lte('proxima', em7).order('proxima').then(r => r.data || []),
       supabase.from('estoque_itens').select('id,nome,quantidade,minimo,categoria_id').eq('ativo', true).then(r => (r.data || []).filter(e => Number(e.quantidade) <= Number(e.minimo))),
+      supabase.from('contas').select('*, categorias(*)').or(`pago_em.is.null,pago_em.gte.${mesAtual().ini}`).order('vencimento').then(r => r.data || [], () => []),
     ])
-    return { categorias, despesas, obras, fixos, pessoas, manut, estoque, hj }
+    return { categorias, despesas, obras, fixos, pessoas, manut, estoque, contas, hj }
   })
   const mes = mesAtual()
+  const acoesConta = useAcoesConta(recarregar)
   if (!dados) return <p className="carregando">Carregando…</p>
-  const { categorias, despesas, obras, fixos, manut, estoque, hj } = dados
+  const { categorias, despesas, obras, fixos, manut, estoque, contas, hj } = dados
+  const cAtras = contas.filter(c => statusConta(c) === 'atrasada')
+  const cVencer = contas.filter(c => statusConta(c) === 'avencer')
+  const cPagas = contas.filter(c => statusConta(c) === 'paga')
+  const cLista = [...cAtras, ...cVencer].slice(0, 5)
 
   const total = soma(despesas)
   const totalFixos = soma(despesas.filter(d => d.tipo === 'fixo' || d.custo_fixo_id))
@@ -34,7 +45,7 @@ export default function Inicio({ sessao }) {
 
   const alertas = []
   const diaHoje = new Date().getDate()
-  fixos.filter(fx => fx.dia_vencimento && fx.dia_vencimento >= diaHoje && fx.dia_vencimento <= diaHoje + 3 && !despesas.some(d => d.custo_fixo_id === fx.id)).forEach(fx => {
+  fixos.filter(fx => fx.pessoa_id && fx.dia_vencimento && fx.dia_vencimento >= diaHoje && fx.dia_vencimento <= diaHoje + 3 && !despesas.some(d => d.custo_fixo_id === fx.id)).forEach(fx => {
     const cat = categorias.find(c => c.id === fx.categoria_id)
     alertas.push({ k: 'danger', cat, texto: `${fx.descricao} vence dia ${fx.dia_vencimento}`, sub: `${cat?.nome || ''} · ${brl(fx.valor)}`, acao: 'pagar', fx })
   })
@@ -78,6 +89,22 @@ export default function Inicio({ sessao }) {
           </div>
           <Meander />
         </Link>
+      </section>
+
+      <section className="sec">
+        <div className="sec-h"><h2>Contas da casa{cAtras.length > 0 && <span className="count danger">{cAtras.length}</span>}</h2><Link to="/contas">Ver todas <ChevronRight size={16} className="i" /></Link></div>
+        <div className="px">
+          <div className="conta-resumo">
+            <Link to="/contas" className="cr danger"><span>Atrasadas</span><b className="num">{brl(soma(cAtras))}</b><small>{cAtras.length} conta{cAtras.length !== 1 ? 's' : ''}</small></Link>
+            <Link to="/contas" className="cr pool"><span>A vencer</span><b className="num">{brl(soma(cVencer))}</b><small>{cVencer.length} conta{cVencer.length !== 1 ? 's' : ''}</small></Link>
+            <Link to="/contas" className="cr ok"><span>Pagas no mês</span><b className="num">{brl(soma(cPagas))}</b><small>{cPagas.length} conta{cPagas.length !== 1 ? 's' : ''}</small></Link>
+          </div>
+          <div className="stack-y mt12">
+            {cLista.map(c => <ContaLinha key={c.id} c={c} onAbrir={acoesConta.abrir} onPagar={acoesConta.pagar} />)}
+            {cLista.length === 0 && <div className="tip"><p className="s" style={{ marginTop: 0 }}>{contas.length ? 'Tudo pago por aqui.' : 'Nenhuma conta cadastrada ainda.'}</p></div>}
+          </div>
+          <button className="btn soft block mt12" onClick={() => acoesConta.abrirNova()}><Plus size={18} className="i" />Adicionar conta</button>
+        </div>
       </section>
 
       {/* No celular é uma coluna, na ordem abaixo. No desktop vira duas colunas:
@@ -157,6 +184,7 @@ export default function Inicio({ sessao }) {
         )}
       </div>
       <div style={{ height: 12 }} />
+      {acoesConta.folhas}
     </>
   )
 }
