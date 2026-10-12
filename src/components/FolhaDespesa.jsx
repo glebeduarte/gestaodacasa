@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
-import { X, Check, Calendar, ChevronDown, Camera } from 'lucide-react'
+import { X, Check, Calendar, ChevronDown, Camera, Plus } from 'lucide-react'
 import { catStyle } from '../lib/categoryStyle'
 import { enviarFotos } from './Upload'
 import { useToast } from './ui/Toast'
@@ -23,6 +23,19 @@ export function FolhaDespesa({ onFechar, onSalvo, inicial = {} }) {
   const tiposVisiveis = TIPOS.filter(([v]) => (v !== 'pessoa' || mods.includes('pessoas')) && ((v !== 'obra' && v !== 'material') || mods.includes('obras')))
   const toast = useToast()
   const [cats, setCats] = useState([])
+  const [novaCat, setNovaCat] = useState(null)
+  const [criandoCat, setCriandoCat] = useState(false)
+  const criarCategoria = async () => {
+    const nome = (novaCat || '').trim()
+    if (!nome) return
+    const existe = cats.find(c => c.nome.toLowerCase() === nome.toLowerCase())
+    if (existe) { set('categoria_id', existe.id); setNovaCat(null); return }
+    setCriandoCat(true)
+    try {
+      const { data } = await supabase.from('categorias').insert({ nome, ativo: true, ordem: cats.length + 1 }).select('*').single()
+      setCats(x => [...x, data]); set('categoria_id', data.id); setNovaCat(null); toast(`Categoria ${nome} criada`)
+    } catch { /* aviso já mostrado */ } finally { setCriandoCat(false) }
+  }
   const [pessoas, setPessoas] = useState([])
   const [obras, setObras] = useState([])
   const [f, setF] = useState({
@@ -103,10 +116,15 @@ export function FolhaDespesa({ onFechar, onSalvo, inicial = {} }) {
             <div className="cats">{cats.map(c => { const { cls, Icon } = catStyle(c); return (
               <button key={c.id} type="button" className={`catopt ${cls} ${f.categoria_id === c.id ? 'on' : ''}`} onClick={() => set('categoria_id', c.id)}>
                 <span className={`tile t-md ${cls}`}><Icon size={22} className="i" /></span><span>{c.nome}</span>
-              </button>) })}</div></div>
+              </button>) })}
+              <button type="button" className="catopt c-neutral nova" onClick={() => setNovaCat('')}>
+                <span className="tile t-md c-neutral"><Plus size={22} className="i" /></span><span>Nova</span>
+              </button></div>
+            {novaCat !== null && <NovaCategoria valor={novaCat} setValor={setNovaCat} criar={criarCategoria} ocupado={criandoCat} />}</div>
         ) : (
           <div className="px mt24"><div className="step"><b>5</b>Categoria</div>
-            <select className="input" value={f.categoria_id} onChange={e => set('categoria_id', e.target.value)}><option value="">Escolher categoria</option>{cats.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
+            <select className="input" value={f.categoria_id} onChange={e => e.target.value === '__nova' ? setNovaCat('') : set('categoria_id', e.target.value)}><option value="">Escolher categoria</option>{cats.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}<option value="__nova">+ Criar nova categoria</option></select>
+            {novaCat !== null && <NovaCategoria valor={novaCat} setValor={setNovaCat} criar={criarCategoria} ocupado={criandoCat} />}</div>
         )}
 
         <div className="px mt24"><div className="step"><b>{f.tipo === 'variavel' ? '4' : '6'}</b>Quando?</div>
@@ -152,5 +170,15 @@ export function FolhaDespesa({ onFechar, onSalvo, inicial = {} }) {
         <div className="sticky-foot"><button className="btn primary block" onClick={salvar} disabled={salvando}><Check size={20} strokeWidth={2.4} className="i" /> {salvando ? 'Salvando…' : 'Salvar gasto'}</button></div>
       </div>
     </>
+  )
+}
+
+function NovaCategoria({ valor, setValor, criar, ocupado }) {
+  return (
+    <div className="nova-cat">
+      <input className="input" autoFocus placeholder="Nome da nova categoria" value={valor} onChange={e => setValor(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); criar() } if (e.key === 'Escape') setValor(null) }} />
+      <button type="button" className="btn sm primary" onClick={criar} disabled={ocupado || !valor.trim()}><Check size={15} className="i" />{ocupado ? 'Criando…' : 'Criar'}</button>
+      <button type="button" className="iconbtn" onClick={() => setValor(null)} aria-label="Cancelar"><X size={16} className="i" /></button>
+    </div>
   )
 }

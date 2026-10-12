@@ -485,3 +485,6 @@ details.more .inner{padding:0 16px 16px}
 .switch.on{background:var(--ok)}.switch.on::after{left:21px}
 .item-campos{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:8px;font-size:12.5px}
 .item-campos span{color:var(--muted)}.item-campos b{color:var(--ink);font-weight:700}
+.catopt.nova{border-style:dashed}
+.nova-cat{display:flex;gap:8px;align-items:center;margin-top:10px}
+.nova-cat .input{flex:1}
