@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, FileUp } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useDados, soma } from '../hooks'
 import { brl, mesAtual } from '../util'
@@ -43,7 +44,7 @@ export default function Contas() {
   return (
     <>
       <BackBar titulo="Contas" acao={<button className="iconbtn" onClick={() => acoes.abrirNova()} aria-label="Nova conta"><Plus size={20} className="i" /></button>} />
-      <header className="hdr" style={{ paddingTop: 12, paddingBottom: 8 }}><div><p className="eyebrow">Luz, água, internet e afins</p><h1>Contas da casa</h1></div></header>
+      <header className="hdr" style={{ paddingTop: 12, paddingBottom: 8 }}><div><p className="eyebrow">Luz, água, internet e afins</p><h1>Contas da casa</h1></div><Link className="btn sm soft" to="/importar"><FileUp size={15} className="i" />Importar extrato</Link></header>
 
       <div className="px stats">
         <div className="stat"><p className="l" style={{ color: 'var(--danger)' }}>Atrasadas</p><p className="v num">{brl(soma(atrasadas))}</p><p className="muted">{atrasadas.length} conta{atrasadas.length !== 1 ? 's' : ''}</p></div>
@@ -73,7 +74,7 @@ export default function Contas() {
         </section>
       </>)}
 
-      <div className="px mt24"><button className="btn dark block" onClick={() => acoes.abrirNova()}><Plus size={18} className="i" />Adicionar conta</button></div>
+      <div className="px mt24 btnrow"><button className="btn dark" style={{ flex: 1 }} onClick={() => acoes.abrirNova()}><Plus size={18} className="i" />Adicionar conta</button><Link className="btn soft" style={{ flex: 1 }} to="/importar"><FileUp size={18} className="i" />Importar extrato</Link></div>
       <div style={{ height: 12 }} />
       {acoes.folhas}
     </>

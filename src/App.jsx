@@ -21,6 +21,7 @@ import Documentos from './pages/Documentos'
 import Estoque from './pages/Estoque'
 import Fechamento from './pages/Fechamento'
 import Contas from './pages/Contas'
+import Importar from './pages/Importar'
 
 // Itens do menu "Mais" (celular) e da sidebar (desktop)
 const MAIS = [
@@ -151,6 +152,7 @@ export default function App() {
             <Route path="/documentos" element={<Documentos />} />
             <Route path="/estoque" element={<Estoque />} />
             <Route path="/contas" element={<Contas />} />
+            <Route path="/importar" element={<Importar />} />
             <Route path="/fechamento" element={<Fechamento />} />
             <Route path="/admin" element={<Admin sessao={sessao} />} />
             <Route path="*" element={<Navigate to="/" />} />

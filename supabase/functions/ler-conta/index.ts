@@ -37,7 +37,9 @@ Regras:
   condominio/iptu/seguro: inscricao, apolice, parcela, unidade`;
 
 // Modelo configurável pelo secret GEMINI_MODEL; se o Google aposentar um, tenta os seguintes
-const MODELOS = [Deno.env.get('GEMINI_MODEL'), 'gemini-3.8-flash', 'gemini-flash-latest'].filter(Boolean) as string[];
+// Ordem de tentativa: modelo configurado, atual, e alternativas mais leves quando houver sobrecarga
+const MODELOS = [Deno.env.get('GEMINI_MODEL'), 'gemini-3.8-flash', 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-pro-latest'].filter(Boolean) as string[];
+const espera = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 async function chamar(modelo: string, key: string, mime: string, arquivo: string, cats: string) {
   const ctrl = new AbortController();
@@ -65,7 +67,8 @@ Deno.serve(async (req) => {
     if (!arquivo || !mime) return json({ erro: 'Arquivo não enviado.' }, 400);
     const cats = (categorias || []).map((c: { nome: string }) => c.nome).join(', ');
     let ultimo = '';
-    for (const modelo of MODELOS) {
+    for (const [n, modelo] of MODELOS.entries()) {
+      if (n > 0 && /high demand|overloaded|unavailable/i.test(ultimo)) await espera(2500);
       let res;
       try { res = await chamar(modelo, key, mime, arquivo, cats); }
       catch { return json({ erro: 'O Gemini demorou demais para responder. Tente de novo em instantes.' }, 504); }
@@ -73,7 +76,7 @@ Deno.serve(async (req) => {
       console.log('gemini', modelo, r.status, Date.now() - t0, 'ms');
       if (!r.ok) {
         ultimo = out?.error?.message || 'Falha ao consultar o Gemini.';
-        if (r.status === 404 || /no longer available|not found|not supported/i.test(ultimo)) continue;
+        if ([404, 429, 500, 503].includes(r.status) || /no longer available|not found|not supported|high demand|overloaded|unavailable/i.test(ultimo)) continue;
         const chaveRuim = /API key|API_KEY|permission|unauthenticated/i.test(ultimo);
         return json({ erro: chaveRuim ? 'A chave do Gemini foi recusada. Confira se é uma chave de API válida (aistudio.google.com/apikey).' : ultimo }, 502);
       }
@@ -83,7 +86,7 @@ Deno.serve(async (req) => {
         return json({ dados, modelo });
       } catch { return json({ erro: 'Não consegui entender a conta. Tente uma foto mais nítida.' }, 422); }
     }
-    return json({ erro: ultimo || 'Nenhum modelo do Gemini disponível.' }, 502);
+    return json({ erro: /high demand|overloaded|unavailable/i.test(ultimo) ? 'O Gemini está sobrecarregado agora. Tente de novo em alguns minutos.' : (ultimo || 'Nenhum modelo do Gemini disponível.') }, 503);
   } catch (e) {
     console.log('erro', String(e));
     return json({ erro: String((e as Error)?.message || e) }, 500);
