@@ -9,6 +9,7 @@ import { BackBar } from '../components/ui/BackBar'
 import { Sheet } from '../components/ui/Sheet'
 import { useToast } from '../components/ui/Toast'
 import { excluirOuArquivar } from '../lib/crud'
+import { saldosAdiantamento } from '../lib/adiantamentos'
 
 const DIAS = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'] // seg..dom
 const DIAS_KEY = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom']
@@ -32,16 +33,17 @@ export default function Pessoas() {
   const [nova, setNova] = useState(null)
   const toast = useToast()
   const { dados, recarregar } = useDados(async () => {
-    const [pessoas, cats, obras, despesas] = await Promise.all([
+    const [pessoas, cats, obras, despesas, adiant] = await Promise.all([
       q.pessoas(),
       supabase.from('categorias').select('id,nome,cor,icone').eq('ativo', true).then(r => r.data || []),
       supabase.from('obras').select('id,nome,empreiteiro_id,status').in('status', ['orcamento_pendente', 'em_andamento', 'pausada']).then(r => r.data || []),
       q.despesasMes(),
+      saldosAdiantamento(),
     ])
-    return { pessoas, cats, obras, despesas }
+    return { pessoas, cats, obras, despesas, adiant }
   })
   if (!dados) return <p className="carregando">Carregando…</p>
-  const { pessoas, cats, obras, despesas } = dados
+  const { pessoas, cats, obras, despesas, adiant } = dados
   const m = mesAtual()
 
   const comStatus = pessoas.map(p => {
@@ -99,7 +101,7 @@ export default function Pessoas() {
               {(p.dias_semana || []).length > 0
                 ? <div className="days">{DIAS.map((d, i) => <span key={i} className={(p.dias_semana || []).includes(DIAS_KEY[i]) ? 'on' : ''}>{d}</span>)}</div>
                 : <span className="chip">{p.frequencia === 'por_demanda' ? 'Por demanda' : p.frequencia || ''}</span>}
-              <span className={`chip ${p.chip.cls}`}>{p.chip.txt}</span>
+              <div className="chips" style={{ justifyContent: 'flex-end' }}>{adiant[p.id] > 0 && <span className="chip warn">Adiantado {brl(adiant[p.id])}</span>}<span className={`chip ${p.chip.cls}`}>{p.chip.txt}</span></div>
             </div>
             <div className="btnrow mt12">
               {tel(p) && <a className="btn sm wa" href={`https://wa.me/55${tel(p)}`} target="_blank" rel="noreferrer"><MessageCircle size={15} className="i" />WhatsApp</a>}

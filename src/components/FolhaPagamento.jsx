@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, Minus, X, Camera, Trash2 } from 'lucide-react'
 import { supabase } from '../supabase'
 import { Sheet } from './ui/Sheet'
@@ -7,7 +7,9 @@ import { enviarFotos } from './Upload'
 import { brl, hoje, dataCurta } from '../util'
 import { excluirDespesa } from '../lib/crud'
 import { FolhaEditarDespesa } from './FolhaEditarDespesa'
-import { Pencil } from 'lucide-react'
+import { Pencil, HandCoins, Check } from 'lucide-react'
+import { adiantamentosAbertos, distribuir, registrarDescontos, restante } from '../lib/adiantamentos'
+import { numero } from '../util'
 
 const PAGAMENTOS = ['Pix', 'Dinheiro', 'Cartão', 'Transferência']
 export const TIPO_ITEM = {
@@ -31,14 +33,21 @@ export function FolhaPagamento({ pessoa, onFechar, onSalvo }) {
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
   const editar = (i, k, v) => setItens(x => x.map((it, j) => j === i ? { ...it, [k]: v } : it))
   const add = (tipo) => setItens(x => [...x, { chave: chave(), tipo, descricao: '', valor: '' }])
-  const total = totalItens(itens)
+  const bruto = totalItens(itens)
+  const [abertos, setAbertos] = useState([])
+  const [sel, setSel] = useState({})
+  useEffect(() => { adiantamentosAbertos(pessoa.id).then(l => { setAbertos(l); setSel(Object.fromEntries(l.map(a => [a.id, true]))) }) }, [pessoa.id])
+  const aplicados = distribuir(abertos, sel, bruto)
+  const descontoAdiant = aplicados.reduce((t, a) => t + a.aplicar, 0)
+  const sobra = aplicados.reduce((t, a) => t + a.sobra, 0)
+  const total = Math.round((bruto - descontoAdiant) * 100) / 100
 
   const salvar = async () => {
     setErro(null)
     const validos = itens.filter(it => num(it.valor))
     if (!validos.length) return setErro('Informe ao menos um valor.')
     if (validos.some(it => !it.descricao.trim())) return setErro('Descreva cada item do pagamento.')
-    if (total <= 0) return setErro('O total ficou zerado ou negativo. Confira os abatimentos.')
+    if (bruto <= 0) return setErro('O valor ficou zerado ou negativo. Confira os abatimentos.')
     setSalvando(true)
     try {
       const urls = fotos.length ? await enviarFotos(fotos, 'despesas') : []
@@ -46,11 +55,14 @@ export function FolhaPagamento({ pessoa, onFechar, onSalvo }) {
       const descricao = validos.length === 1 ? validos[0].descricao.trim() : `${validos[0].descricao.trim()}${temExtra ? ' + ajustes' : ''}`
       const { data: d, error } = await supabase.from('despesas').insert({
         tipo: 'pessoa', pessoa_id: pessoa.id, categoria_id: pessoa.categoria_id || null,
-        descricao, explicacao: f.explicacao || null, valor: total, data: f.data, forma_pagamento: f.forma_pagamento, fotos: urls,
+        descricao: descontoAdiant > 0 ? `${descricao} (desc. adiantamentos)` : descricao, explicacao: f.explicacao || null, valor: total, data: f.data, forma_pagamento: f.forma_pagamento, fotos: urls,
       }).select('id').single()
       if (error) throw error
-      const { error: e2 } = await supabase.from('pagamento_itens').insert(validos.map((it, ordem) => ({ despesa_id: d.id, tipo: it.tipo, descricao: it.descricao.trim(), valor: Math.abs(num(it.valor)), ordem })))
+      const linhas = validos.map((it, ordem) => ({ despesa_id: d.id, tipo: it.tipo, descricao: it.descricao.trim(), valor: Math.abs(num(it.valor)), ordem }))
+      aplicados.filter(a => a.aplicar > 0).forEach((a, i) => linhas.push({ despesa_id: d.id, tipo: 'abatimento', descricao: `Adiantamento de ${dataCurta(a.data)}${a.aplicar < restante(a) ? ' (parcial)' : ''}`, valor: a.aplicar, ordem: 100 + i, adiantamento_id: a.id }))
+      const { error: e2 } = await supabase.from('pagamento_itens').insert(linhas)
       if (e2) throw e2
+      await registrarDescontos(aplicados)
       toast('Pagamento registrado'); onSalvo?.(); onFechar()
     } catch (e) { setErro(e.message) } finally { setSalvando(false) }
   }
@@ -73,7 +85,22 @@ export function FolhaPagamento({ pessoa, onFechar, onSalvo }) {
           </div>
         </div>
 
-        <div className="pg-total"><span>Total a pagar</span><b className="num">{brl(total)}</b></div>
+        {abertos.length > 0 && (
+          <div className="field"><span className="l">Adiantamentos em aberto (descontar)</span>
+            <div className="pg-itens">{abertos.map(a => { const ap = aplicados.find(x => x.id === a.id); return (
+              <label key={a.id} className={`pg-adiant ${sel[a.id] ? 'on' : ''}`}>
+                <input type="checkbox" checked={!!sel[a.id]} onChange={e => setSel(x => ({ ...x, [a.id]: e.target.checked }))} />
+                <div className="grow"><b>{dataCurta(a.data)}</b>{a.explicacao ? <small> · {a.explicacao}</small> : null}{Number(a.descontado) > 0 && <small> · restante de {brl(a.valor)}</small>}</div>
+                <span className="num">− {brl(ap ? ap.aplicar : restante(a))}</span>
+              </label>) })}</div>
+          </div>
+        )}
+
+        <div className="pg-resumo">
+          {descontoAdiant > 0 && <><div><span>Valor bruto</span><span className="num">{brl(bruto)}</span></div><div><span>Adiantamentos descontados</span><span className="num">− {brl(descontoAdiant)}</span></div></>}
+          <div className="pg-total"><span>Líquido a pagar</span><b className="num">{brl(total)}</b></div>
+          {sobra > 0 && <p className="muted">{brl(sobra)} de adiantamento passam para o próximo pagamento.</p>}
+        </div>
 
         <div style={{ display: 'flex', gap: 10 }}>
           <label className="field" style={{ flex: 1 }}><span className="l">Data</span><input className="input" type="date" value={f.data} onChange={e => set('data', e.target.value)} /></label>
@@ -99,7 +126,7 @@ export function FolhaVerPagamento({ despesa, onFechar, onSalvo }) {
   const itens = [...(despesa.pagamento_itens || [])].sort((a, b) => a.ordem - b.ordem)
   const excluir = async () => {
     if (!confirm(`Excluir este pagamento de ${brl(despesa.valor)}?`)) return
-    try { await excluirDespesa(despesa.id); toast('Pagamento excluído'); onSalvo?.(); onFechar() } catch { /* aviso já mostrado */ }
+    try { await excluirDespesa(despesa.id); toast('Pagamento excluído'); onSalvo?.(); onFechar() } catch (e) { toast({ txt: e.message, erro: true }) }
   }
   return (
     <Sheet titulo={`Pagamento de ${dataCurta(despesa.data)}`} onFechar={onFechar}>
@@ -108,7 +135,9 @@ export function FolhaVerPagamento({ despesa, onFechar, onSalvo }) {
           <div key={it.id} className="row"><div className="grow"><span className={`chip ${TIPO_ITEM[it.tipo].cls}`}>{TIPO_ITEM[it.tipo].txt}</span><p className="t" style={{ marginTop: 4 }}>{it.descricao}</p></div>
             <b className="num" style={{ color: it.tipo === 'abatimento' ? 'var(--danger)' : 'inherit' }}>{it.tipo === 'abatimento' ? '− ' : ''}{brl(it.valor)}</b></div>))}</div>
           : <div className="list"><div className="row"><div className="grow"><p className="t">{despesa.descricao}</p></div><b className="num">{brl(despesa.valor)}</b></div></div>}
-        <div className="pg-total"><span>Total pago</span><b className="num">{brl(despesa.valor)}</b></div>
+        {despesa.adiantamento && <div className="tip"><HandCoins size={18} className="i" style={{ color: 'var(--warn)', flex: '0 0 auto' }} /><p className="s" style={{ marginTop: 0 }}>Adiantamento. {restante(despesa) > 0 ? `${brl(restante(despesa))} ainda a descontar no próximo pagamento.` : 'Já descontado integralmente.'}</p></div>}
+        {itens.some(i => i.tipo === 'abatimento') && <div className="pg-resumo"><div><span>Valor bruto</span><span className="num">{brl(itens.filter(i => i.tipo !== 'abatimento').reduce((t, i) => t + Number(i.valor), 0))}</span></div><div><span>Descontos</span><span className="num">− {brl(itens.filter(i => i.tipo === 'abatimento').reduce((t, i) => t + Number(i.valor), 0))}</span></div></div>}
+        <div className="pg-total"><span>{despesa.adiantamento ? 'Valor adiantado' : 'Total pago'}</span><b className="num">{brl(despesa.valor)}</b></div>
         <p className="muted">{dataCurta(despesa.data)}{despesa.forma_pagamento ? ` · ${despesa.forma_pagamento}` : ''}</p>
         {despesa.explicacao && <div className="tip"><p className="s" style={{ marginTop: 0 }}>{despesa.explicacao}</p></div>}
         {despesa.fotos?.length > 0 && <div className="photos">{despesa.fotos.map((u, i) => <a key={i} href={u} target="_blank" rel="noreferrer"><img src={u} alt="" /></a>)}</div>}
@@ -118,6 +147,40 @@ export function FolhaVerPagamento({ despesa, onFechar, onSalvo }) {
         </div>
       </div>
       {editar && <FolhaEditarDespesa despesa={despesa} onFechar={() => setEditar(false)} onSalvo={() => { onSalvo?.(); onFechar() }} />}
+    </Sheet>
+  )
+}
+
+// Registrar um adiantamento: sai do caixa agora e fica em aberto até ser descontado
+export function FolhaAdiantamento({ pessoa, onFechar, onSalvo }) {
+  const toast = useToast()
+  const [f, setF] = useState({ valor: '', data: hoje(), forma_pagamento: pessoa.forma_pagamento || 'Pix', motivo: '' })
+  const [erro, setErro] = useState(null)
+  const [salvando, setSalvando] = useState(false)
+  const set = (k, v) => setF(x => ({ ...x, [k]: v }))
+  const salvar = async () => {
+    const valor = numero(f.valor)
+    if (!valor) return setErro('Informe o valor.')
+    setSalvando(true)
+    try {
+      await supabase.from('despesas').insert({ tipo: 'pessoa', adiantamento: true, descontado: 0, pessoa_id: pessoa.id, categoria_id: pessoa.categoria_id || null,
+        descricao: `Adiantamento ${pessoa.nome.split(' ')[0]}`, explicacao: f.motivo || null, valor, data: f.data, forma_pagamento: f.forma_pagamento, fotos: [] })
+      toast('Adiantamento registrado'); onSalvo?.(); onFechar()
+    } catch (e) { setErro(e.message); setSalvando(false) }
+  }
+  return (
+    <Sheet titulo={`Adiantamento para ${pessoa.nome.split(' ')[0]}`} onFechar={onFechar}>
+      <div className="stack-y">
+        <p className="muted">O valor entra no gasto de hoje e fica em aberto. No próximo pagamento ele aparece para ser descontado.</p>
+        <label className="money"><span>R$</span><input inputMode="decimal" placeholder="0,00" value={f.valor} onChange={e => set('valor', e.target.value)} autoFocus /></label>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <label className="field" style={{ flex: 1 }}><span className="l">Data</span><input className="input" type="date" value={f.data} onChange={e => set('data', e.target.value)} /></label>
+          <label className="field" style={{ flex: 1 }}><span className="l">Forma</span><select className="input" value={f.forma_pagamento} onChange={e => set('forma_pagamento', e.target.value)}>{[...new Set([f.forma_pagamento, ...PAGAMENTOS])].map(p => <option key={p}>{p}</option>)}</select></label>
+        </div>
+        <label className="field"><span className="l">Motivo (opcional)</span><input className="input" value={f.motivo} onChange={e => set('motivo', e.target.value)} placeholder="Ex.: farmácia, passagem" /></label>
+        {erro && <p style={{ color: 'var(--danger)', fontWeight: 700, fontSize: 13.5 }}>{erro}</p>}
+        <button className="btn primary block" onClick={salvar} disabled={salvando}><Check size={18} className="i" />{salvando ? 'Salvando…' : 'Registrar adiantamento'}</button>
+      </div>
     </Sheet>
   )
 }

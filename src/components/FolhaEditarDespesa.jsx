@@ -15,7 +15,7 @@ export function FolhaEditarDespesa({ despesa: d, onFechar, onSalvo }) {
   const [cats, setCats] = useState([])
   const [pessoas, setPessoas] = useState([])
   const [obras, setObras] = useState([])
-  const temItens = (d.pagamento_itens || []).length > 1
+  const temItens = (d.pagamento_itens || []).length > 1 || (d.adiantamento && Number(d.descontado) > 0)
   const [f, setF] = useState({ descricao: d.descricao || '', valor: String(d.valor ?? '').replace('.', ','), data: d.data, categoria_id: d.categoria_id || '', pessoa_id: d.pessoa_id || '', obra_id: d.obra_id || '', tipo: d.tipo || 'variavel', forma_pagamento: d.forma_pagamento || 'Pix', explicacao: d.explicacao || '' })
   const [salvando, setSalvando] = useState(false)
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
@@ -36,7 +36,7 @@ export function FolhaEditarDespesa({ despesa: d, onFechar, onSalvo }) {
   }
   const excluir = async () => {
     if (!confirm(`Excluir "${d.descricao}" de ${brl(d.valor)}? Não dá para desfazer.`)) return
-    try { await excluirDespesa(d.id); toast('Registro excluído'); onSalvo?.(); onFechar() } catch { /* aviso já mostrado */ }
+    try { await excluirDespesa(d.id); toast('Registro excluído'); onSalvo?.(); onFechar() } catch (e) { toast({ txt: e.message, erro: true }) }
   }
   return (
     <Sheet titulo="Editar registro" onFechar={onFechar}>
@@ -46,7 +46,7 @@ export function FolhaEditarDespesa({ despesa: d, onFechar, onSalvo }) {
           <label className="field" style={{ flex: 1 }}><span className="l">Valor (R$)</span><input className="input" inputMode="decimal" value={f.valor} onChange={e => set('valor', e.target.value)} disabled={temItens} /></label>
           <label className="field" style={{ flex: 1 }}><span className="l">Data</span><input className="input" type="date" value={f.data} onChange={e => set('data', e.target.value)} /></label>
         </div>
-        {temItens && <p className="muted">Este pagamento tem itens (extras e abatimentos). Para mudar o valor, exclua e registre de novo na tela da pessoa.</p>}
+        {temItens && <p className="muted">{d.adiantamento ? 'Este adiantamento já foi descontado em um pagamento, por isso o valor não pode mudar.' : 'Este pagamento tem itens (extras e abatimentos). Para mudar o valor, exclua e registre de novo na tela da pessoa.'}</p>}
         <div style={{ display: 'flex', gap: 10 }}>
           <label className="field" style={{ flex: 1 }}><span className="l">Tipo</span><select className="input" value={f.tipo} onChange={e => set('tipo', e.target.value)}>{TIPOS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>
           <label className="field" style={{ flex: 1 }}><span className="l">Categoria</span><select className="input" value={f.categoria_id} onChange={e => set('categoria_id', e.target.value)}><option value="">Nenhuma</option>{cats.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
