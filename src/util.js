@@ -52,3 +52,13 @@ export const MESES_EXT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'ju
 export const dataCurta2 = (s) => { if (!s) return ''; const d = new Date(s + 'T12:00:00'); return `${d.getDate()} ${['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][d.getMonth()]}` }
 export const variacao = (a, b) => b ? Math.round((a - b) / b * 100) : null
 export const diasEntre = (d) => diasAte(d)
+
+// Converte "1.234,56", "120,5" ou "120.5" em número. Vazio vira null.
+export const numero = (v) => {
+  if (v === null || v === undefined) return null
+  if (typeof v === 'number') return isNaN(v) ? null : v
+  const s = String(v).replace(/[R$\s]/g, '').trim()
+  if (!s) return null
+  const n = Number(s.includes(',') ? s.replace(/\./g, '').replace(',', '.') : s)
+  return isNaN(n) ? null : n
+}

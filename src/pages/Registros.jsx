@@ -4,11 +4,13 @@ import { useDados, soma } from '../hooks'
 import { brl, dataCurta } from '../util'
 import { CatTile } from '../lib/categoryStyle'
 import { BackBar } from '../components/ui/BackBar'
+import { FolhaEditarDespesa } from '../components/FolhaEditarDespesa'
 
 export default function Registros() {
   const [filtro, setFiltro] = useState('todos')
-  const { dados } = useDados(async () => {
-    const despesas = await supabase.from('despesas').select('*, categorias(nome,cor,icone), pessoas(nome), obras(nome)').order('data', { ascending: false }).limit(200).then(r => r.data || [])
+  const [editar, setEditar] = useState(null)
+  const { dados, recarregar } = useDados(async () => {
+    const despesas = await supabase.from('despesas').select('*, categorias(nome,cor,icone), pessoas(nome), obras(nome), pagamento_itens(id)').order('data', { ascending: false }).limit(200).then(r => r.data || [])
     return { despesas }
   })
   if (!dados) return <p className="carregando">Carregando…</p>
@@ -32,12 +34,14 @@ export default function Registros() {
           <div key={data}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', margin: '4px 2px 8px' }}><span className="muted" style={{ fontWeight: 700 }}>{dataCurta(data)}</span><span className="muted num">{brl(soma(itens))}</span></div>
             <div className="list">{itens.map(d => (
-              <div key={d.id} className="row"><CatTile cat={d.categorias} size="md" /><div className="grow"><p className="t">{d.descricao}</p><p className="s">{d.categorias?.nome}{d.pessoas?.nome ? ` · ${d.pessoas.nome}` : ''}{d.obras?.nome ? ` · ${d.obras.nome}` : ''}{d.forma_pagamento ? ` · ${d.forma_pagamento}` : ''}</p></div><b className="num">{brl(d.valor)}</b></div>
+              <button key={d.id} type="button" className="row" onClick={() => setEditar(d)}><CatTile cat={d.categorias} size="md" /><div className="grow"><p className="t">{d.descricao}</p><p className="s">{d.categorias?.nome}{d.pessoas?.nome ? ` · ${d.pessoas.nome}` : ''}{d.obras?.nome ? ` · ${d.obras.nome}` : ''}{d.forma_pagamento ? ` · ${d.forma_pagamento}` : ''}</p></div><b className="num">{brl(d.valor)}</b></button>
             ))}</div>
           </div>
         ))}
       </section>
+      <p className="muted px mt16">Toque em um registro para editar ou excluir.</p>
       <div style={{ height: 12 }} />
+      {editar && <FolhaEditarDespesa despesa={editar} onFechar={() => setEditar(null)} onSalvo={recarregar} />}
     </>
   )
 }

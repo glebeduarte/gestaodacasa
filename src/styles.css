@@ -419,3 +419,4 @@ details.more .inner{padding:0 16px 16px}
 .tip.ia-ok{align-items:flex-start}
 .tip.ia-ok .i{color:var(--pool);flex:0 0 auto}
 @media (max-width:380px){.conta-resumo .cr b{font-size:14px}.det-grid{grid-template-columns:1fr}}
+.toast.erro{background:var(--danger);max-width:calc(100vw - 32px)}

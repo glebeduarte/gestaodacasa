@@ -4,7 +4,7 @@ import { X, Check, Calendar, ChevronDown, Camera } from 'lucide-react'
 import { catStyle } from '../lib/categoryStyle'
 import { enviarFotos } from './Upload'
 import { useToast } from './ui/Toast'
-import { hoje } from '../util'
+import { hoje, numero } from '../util'
 
 const TIPOS = [
   ['variavel', 'Conta da casa', 'Luz, água, piscina, jardim, internet', 'c-fech'],
@@ -54,9 +54,9 @@ export function FolhaDespesa({ onFechar, onSalvo, inicial = {} }) {
       const urls = fotos.length ? await enviarFotos(fotos, 'despesas') : []
       const { error } = await supabase.from('despesas').insert({
         tipo: f.tipo, categoria_id: f.categoria_id, pessoa_id: f.pessoa_id || null, obra_id: f.obra_id || null, custo_fixo_id: f.custo_fixo_id || null,
-        descricao: f.descricao, explicacao: f.explicacao || null, valor: Number(String(f.valor).replace(',', '.')),
+        descricao: f.descricao, explicacao: f.explicacao || null, valor: numero(f.valor),
         data: f.data, forma_pagamento: f.forma_pagamento, fotos: urls,
-        consumo: f.consumo ? Number(String(f.consumo).replace(',', '.')) : null, unidade_consumo: f.consumo ? f.unidade_consumo : null,
+        consumo: f.consumo ? numero(f.consumo) : null, unidade_consumo: f.consumo ? f.unidade_consumo : null,
       })
       if (error) throw error
       toast('Gasto registrado')

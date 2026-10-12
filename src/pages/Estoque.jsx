@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Package, Plus, Send } from 'lucide-react'
+import { Package, Plus, Send, Pencil, Trash2 } from 'lucide-react'
+import { excluirOuArquivar } from '../lib/crud'
 import { supabase } from '../supabase'
 import { useDados } from '../hooks'
-import { hoje } from '../util'
+import { hoje, numero } from '../util'
 import { CatTile } from '../lib/categoryStyle'
 import { BackBar } from '../components/ui/BackBar'
 import { Sheet } from '../components/ui/Sheet'
@@ -71,6 +72,7 @@ export default function Estoque() {
                 {i.categorias ? <CatTile cat={i.categorias} size="md" /> : <span className="tile t-md c-estoque"><Package size={22} className="i" /></span>}
                 <div className="grow" style={{ flex: 1, minWidth: 0 }}><p className="t" style={{ fontWeight: 700 }}>{i.nome}</p><p className="s">mínimo {Number(i.minimo)}{i.unidade ? ` ${i.unidade}` : ''}</p></div>
                 <span className={`chip ${n.cls}`}>{n.txt}</span>
+                <button className="iconbtn" style={{ width: 34, height: 34 }} onClick={() => setNovo(i)} aria-label="Editar"><Pencil size={15} className="i" /></button>
               </div>
               <div className="bar mt12"><i style={{ width: pct + '%', '--b': n.cls === 'danger' ? 'var(--danger)' : n.cls === 'warn' ? 'var(--warn)' : 'var(--ok)' }} /></div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
@@ -81,21 +83,26 @@ export default function Estoque() {
           ) })}
       </section>
       <div style={{ height: 12 }} />
-      {novo && <FolhaEstoque cats={cats} onFechar={() => setNovo(false)} onSalvo={recarregar} />}
+      {novo && <FolhaEstoque inicial={novo === true ? {} : novo} cats={cats} onFechar={() => setNovo(false)} onSalvo={recarregar} />}
     </>
   )
 }
 
-function FolhaEstoque({ cats, onFechar, onSalvo }) {
-  const [f, setF] = useState({ nome: '', categoria_id: '', quantidade: '', unidade: '', minimo: '' })
+function FolhaEstoque({ inicial = {}, cats, onFechar, onSalvo }) {
+  const [f, setF] = useState({ nome: '', categoria_id: '', quantidade: '', unidade: '', minimo: '', ...Object.fromEntries(Object.entries(inicial).filter(([k]) => k !== 'categorias').map(([k, v]) => [k, v == null ? '' : String(v)])) })
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
   const salvar = async () => {
-    if (!f.nome) return
-    await supabase.from('estoque_itens').insert({ nome: f.nome, categoria_id: f.categoria_id || null, quantidade: Number(f.quantidade) || 0, unidade: f.unidade || null, minimo: Number(f.minimo) || 0, ultima_compra: hoje(), ativo: true })
-    onSalvo(); onFechar()
+    if (!f.nome.trim()) return
+    const payload = { nome: f.nome.trim(), categoria_id: f.categoria_id || null, quantidade: numero(f.quantidade) || 0, unidade: f.unidade || null, minimo: numero(f.minimo) || 0 }
+    try {
+      if (f.id) await supabase.from('estoque_itens').update(payload).eq('id', f.id)
+      else await supabase.from('estoque_itens').insert({ ...payload, ultima_compra: hoje(), ativo: true })
+      onSalvo(); onFechar()
+    } catch { /* aviso já mostrado */ }
   }
+  const excluir = async () => { if (!confirm(`Excluir "${f.nome}" do estoque?`)) return; try { await excluirOuArquivar('estoque_itens', f.id); onSalvo(); onFechar() } catch { /* aviso já mostrado */ } }
   return (
-    <Sheet titulo="Novo item de estoque" onFechar={onFechar}>
+    <Sheet titulo={f.id ? 'Editar item' : 'Novo item de estoque'} onFechar={onFechar}>
       <div className="stack-y">
         <label className="field"><span className="l">Item</span><input className="input" value={f.nome} onChange={e => set('nome', e.target.value)} placeholder="Ex.: cloro, ração, sabão" /></label>
         <label className="field"><span className="l">Categoria</span><select className="input" value={f.categoria_id} onChange={e => set('categoria_id', e.target.value)}><option value="">Nenhuma</option>{cats.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
@@ -105,6 +112,7 @@ function FolhaEstoque({ cats, onFechar, onSalvo }) {
           <label className="field" style={{ flex: 1 }}><span className="l">Mínimo</span><input className="input" inputMode="decimal" value={f.minimo} onChange={e => set('minimo', e.target.value)} /></label>
         </div>
         <button className="btn primary block" onClick={salvar}>Salvar item</button>
+        {f.id && <button className="btn block" style={{ color: 'var(--danger)' }} onClick={excluir}><Trash2 size={16} className="i" />Excluir item</button>}
       </div>
     </Sheet>
   )

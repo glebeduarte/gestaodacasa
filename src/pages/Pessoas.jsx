@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom'
 import { Plus, Phone, MessageCircle } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, q, soma } from '../hooks'
-import { brl, dataCurta, iniciais, hoje, mesAtual, UNIDADE } from '../util'
+import { brl, dataCurta, iniciais, hoje, mesAtual, UNIDADE, numero } from '../util'
 import { catStyle } from '../lib/categoryStyle'
 import { BackBar } from '../components/ui/BackBar'
 import { Sheet } from '../components/ui/Sheet'
 import { useToast } from '../components/ui/Toast'
+import { excluirOuArquivar } from '../lib/crud'
 
 const DIAS = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'] // seg..dom
 const DIAS_KEY = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom']
@@ -123,10 +124,16 @@ export function FolhaPessoa({ inicial = {}, cats, onFechar, onSalvo }) {
   const toggleDia = (d) => set('dias_semana', f.dias_semana.includes(d) ? f.dias_semana.filter(x => x !== d) : [...f.dias_semana, d])
   const salvar = async () => {
     if (!f.nome) return
-    const payload = { nome: f.nome, funcao: f.funcao || null, categoria_id: f.categoria_id || null, recorrente: f.recorrente !== false, frequencia: f.recorrente === false ? 'por_demanda' : f.frequencia, valor_combinado: f.valor_combinado ? Number(f.valor_combinado) : null, unidade_valor: f.unidade_valor, telefone: f.telefone || null, dias_semana: f.dias_semana, forma_pagamento: f.forma_pagamento, observacoes: f.observacoes || null, ativo: true }
-    if (f.id) await supabase.from('pessoas').update(payload).eq('id', f.id)
-    else await supabase.from('pessoas').insert(payload)
-    onSalvo(); onFechar()
+    const payload = { nome: f.nome, funcao: f.funcao || null, categoria_id: f.categoria_id || null, recorrente: f.recorrente !== false, frequencia: f.recorrente === false ? 'por_demanda' : f.frequencia, valor_combinado: f.valor_combinado ? numero(f.valor_combinado) : null, unidade_valor: f.unidade_valor, telefone: f.telefone || null, dias_semana: f.dias_semana, forma_pagamento: f.forma_pagamento, observacoes: f.observacoes || null, ativo: true }
+    try {
+      if (f.id) await supabase.from('pessoas').update(payload).eq('id', f.id)
+      else await supabase.from('pessoas').insert(payload)
+      onSalvo(); onFechar()
+    } catch { /* aviso já mostrado */ }
+  }
+  const excluir = async () => {
+    if (!confirm(`Excluir ${f.nome}? Se houver pagamentos registrados, a pessoa será arquivada e os pagamentos continuam no histórico.`)) return
+    try { await excluirOuArquivar('pessoas', f.id); onSalvo(); onFechar(); if (location.pathname.startsWith('/pessoas/')) location.assign('/pessoas') } catch { /* aviso já mostrado */ }
   }
   return (
     <Sheet titulo={f.id ? 'Editar pessoa' : 'Nova pessoa'} onFechar={onFechar}>
@@ -152,6 +159,7 @@ export function FolhaPessoa({ inicial = {}, cats, onFechar, onSalvo }) {
         <div className="field"><span className="l">Dias da semana</span><div className="days">{DIAS.map((d, i) => <button key={i} type="button" className={f.dias_semana.includes(DIAS_KEY[i]) ? 'on' : ''} onClick={() => toggleDia(DIAS_KEY[i])} style={{ width: 34, height: 34, borderRadius: 10, fontWeight: 800, fontSize: 12, background: f.dias_semana.includes(DIAS_KEY[i]) ? 'var(--pool-soft)' : 'var(--surface-2)', color: f.dias_semana.includes(DIAS_KEY[i]) ? '#08798C' : '#A8B7C6' }}>{d}</button>)}</div></div>
         <label className="field"><span className="l">Observações</span><textarea className="input" value={f.observacoes} onChange={e => set('observacoes', e.target.value)} /></label>
         <button className="btn primary block" onClick={salvar}>Salvar pessoa</button>
+        {f.id && <button className="btn block" style={{ color: 'var(--danger)' }} onClick={excluir}>Excluir pessoa</button>}
       </div>
     </Sheet>
   )

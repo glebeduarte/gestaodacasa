@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Wrench, Plus, Check } from 'lucide-react'
+import { Wrench, Plus, Check, Trash2 } from 'lucide-react'
+import { excluirOuArquivar } from '../lib/crud'
 import { supabase } from '../supabase'
 import { useDados } from '../hooks'
-import { dataCurta, diasAte, somarDias, hoje, INTERVALOS, nomeIntervalo } from '../util'
+import { dataCurta, diasAte, somarDias, hoje, INTERVALOS, nomeIntervalo, numero } from '../util'
 import { CatTile } from '../lib/categoryStyle'
 import { BackBar } from '../components/ui/BackBar'
 import { Sheet } from '../components/ui/Sheet'
@@ -42,7 +43,7 @@ export default function Manutencoes() {
   const Item = ({ m }) => (
     <div className="row">
       {m.categorias ? <CatTile cat={m.categorias} size="md" /> : <span className="tile t-md c-manut"><Wrench size={22} className="i" /></span>}
-      <div className="grow"><p className="t">{m.nome}</p><p className="s">{nomeIntervalo(m.intervalo_dias)}{m.ultima_execucao ? ` · última ${dataCurta(m.ultima_execucao)}` : ' · nunca feita'}</p></div>
+      <div className="grow" onClick={() => setNovo(m)} style={{ cursor: 'pointer' }}><p className="t">{m.nome}</p><p className="s">{nomeIntervalo(m.intervalo_dias)}{m.ultima_execucao ? ` · última ${dataCurta(m.ultima_execucao)}` : ' · nunca feita'}</p></div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
         {m.dias !== null && <span className={`chip ${m.dias < 0 ? 'danger' : m.dias <= 15 ? 'warn' : ''}`} style={{ height: 22, fontSize: 11 }}>{m.dias < 0 ? `há ${-m.dias} dias` : m.proxima ? dataCurta(m.proxima) : ''}</span>}
         <button className="btn sm dark" onClick={() => feito(m)}><Check size={14} className="i" />Feito</button>
@@ -83,22 +84,33 @@ export default function Manutencoes() {
 }
 
 function FolhaManut({ inicial, cats, onFechar, onSalvo }) {
-  const [f, setF] = useState({ nome: '', categoria_id: '', intervalo_dias: 30, ultima_execucao: '', observacoes: '', ...inicial })
+  const [f, setF] = useState({ nome: '', categoria_id: '', intervalo_dias: 30, ultima_execucao: '', observacoes: '', proxima: '', ...Object.fromEntries(Object.entries(inicial).filter(([k]) => !['categorias', 'dias'].includes(k)).map(([k, v]) => [k, v ?? ''])) })
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
   const salvar = async () => {
-    if (!f.nome) return
-    const prox = f.ultima_execucao ? somarDias(f.ultima_execucao, Number(f.intervalo_dias)) : hoje()
-    await supabase.from('manutencoes').insert({ nome: f.nome, categoria_id: f.categoria_id || null, intervalo_dias: Number(f.intervalo_dias), ultima_execucao: f.ultima_execucao || null, proxima: prox, observacoes: f.observacoes || null, ativo: true })
-    onSalvo(); onFechar()
+    if (!f.nome.trim()) return
+    const intervalo = numero(f.intervalo_dias) || 30
+    const prox = f.ultima_execucao ? somarDias(f.ultima_execucao, intervalo) : (f.proxima || hoje())
+    const payload = { nome: f.nome.trim(), categoria_id: f.categoria_id || null, intervalo_dias: intervalo, ultima_execucao: f.ultima_execucao || null, proxima: prox, observacoes: f.observacoes || null }
+    try {
+      if (f.id) await supabase.from('manutencoes').update(payload).eq('id', f.id)
+      else await supabase.from('manutencoes').insert({ ...payload, ativo: true })
+      onSalvo(); onFechar()
+    } catch { /* aviso já mostrado */ }
+  }
+  const excluir = async () => {
+    if (!confirm(`Excluir a manutenção "${f.nome}"?`)) return
+    try { await supabase.from('manutencao_execucoes').delete().eq('manutencao_id', f.id); await excluirOuArquivar('manutencoes', f.id); onSalvo(); onFechar() } catch { /* aviso já mostrado */ }
   }
   return (
-    <Sheet titulo="Nova manutenção" onFechar={onFechar}>
+    <Sheet titulo={f.id ? 'Editar manutenção' : 'Nova manutenção'} onFechar={onFechar}>
       <div className="stack-y">
         <label className="field"><span className="l">O que precisa ser feito</span><input className="input" value={f.nome} onChange={e => set('nome', e.target.value)} placeholder="Ex.: limpar a caixa d'água" /></label>
         <label className="field"><span className="l">Categoria</span><select className="input" value={f.categoria_id} onChange={e => set('categoria_id', e.target.value)}><option value="">Nenhuma</option>{cats.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
         <label className="field"><span className="l">Frequência</span><select className="input" value={f.intervalo_dias} onChange={e => set('intervalo_dias', e.target.value)}>{INTERVALOS.map(([d, t]) => <option key={d} value={d}>{t}</option>)}</select></label>
         <label className="field"><span className="l">Última vez que foi feita (opcional)</span><input className="input" type="date" value={f.ultima_execucao} onChange={e => set('ultima_execucao', e.target.value)} /></label>
+        <label className="field"><span className="l">Observações</span><textarea className="input" value={f.observacoes} onChange={e => set('observacoes', e.target.value)} /></label>
         <button className="btn primary block" onClick={salvar}>Salvar manutenção</button>
+        {f.id && <button className="btn block" style={{ color: 'var(--danger)' }} onClick={excluir}><Trash2 size={16} className="i" />Excluir manutenção</button>}
       </div>
     </Sheet>
   )

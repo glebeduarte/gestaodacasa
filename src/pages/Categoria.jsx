@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { Plus, Check } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, soma } from '../hooks'
-import { brl, dataCurta, hoje, mesAtual, variacao } from '../util'
+import { brl, dataCurta, hoje, mesAtual, variacao, numero } from '../util'
 import { CatTile } from '../lib/categoryStyle'
 import { BackBar } from '../components/ui/BackBar'
 import { FolhaDespesa } from '../components/FolhaDespesa'
@@ -12,6 +12,9 @@ import { useToast } from '../components/ui/Toast'
 import { abrirDocumento } from './Documentos'
 import { ContaLinha } from '../components/FolhaConta'
 import { useAcoesConta } from './Contas'
+import { FolhaEditarDespesa } from '../components/FolhaEditarDespesa'
+import { excluirOuArquivar } from '../lib/crud'
+import { Pencil, Trash2 } from 'lucide-react'
 
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
@@ -20,6 +23,7 @@ export default function Categoria() {
   const toast = useToast()
   const [despesaAberta, setDespesaAberta] = useState(null)
   const [fixoAberto, setFixoAberto] = useState(false)
+  const [editDespesa, setEditDespesa] = useState(null)
 
   const { dados, recarregar } = useDados(async () => {
     const seis = new Date(); seis.setMonth(seis.getMonth() - 5); seis.setDate(1)
@@ -96,7 +100,7 @@ export default function Categoria() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div><p style={{ fontWeight: 700, fontSize: 14.5 }}>{f.pessoas?.nome ? `${f.pessoas.nome} · ` : ''}{f.descricao}</p>
                   <p className="muted">{f.recorrencia}{f.dia_vencimento ? ` · vence dia ${f.dia_vencimento}` : ''}{f.debito_automatico ? ' · débito automático' : ''}</p></div>
-                <b className="num" style={{ fontSize: 15 }}>{brl(f.valor)}</b>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b className="num" style={{ fontSize: 15 }}>{brl(f.valor)}</b><button className="iconbtn" style={{ width: 34, height: 34 }} onClick={() => setFixoAberto(f)} aria-label="Editar"><Pencil size={15} className="i" /></button></div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid var(--line)' }}>
                 {pago ? <span className="chip ok"><Check size={13} className="i" />Pago em {dataCurta(pago.data)}</span> : <span className="chip warn">Ainda não pago</span>}
@@ -111,11 +115,11 @@ export default function Categoria() {
       <div className="px stack-y">
         {doMes.filter(d => !d.custo_fixo_id).length === 0 && <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nenhum gasto avulso neste mês.</p></div>}
         {doMes.filter(d => !d.custo_fixo_id).map(d => (
-          <div key={d.id} className="card">
+          <div key={d.id} className="card" onClick={() => setEditDespesa(d)} style={{ cursor: 'pointer' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><p style={{ fontWeight: 700, fontSize: 14.5 }}>{d.descricao}</p><b className="num" style={{ fontSize: 14.5 }}>{brl(d.valor)}</b></div>
             {d.explicacao && <p className="sub" style={{ marginTop: 4 }}>{d.explicacao}</p>}
             <p className="muted" style={{ marginTop: 4 }}>{dataCurta(d.data)}{d.consumo ? ` · ${Number(d.consumo)} ${d.unidade_consumo}` : ''}{d.forma_pagamento ? ` · ${d.forma_pagamento}` : ''}{d.pessoas?.nome ? ` · ${d.pessoas.nome}` : ''}</p>
-            {d.fotos?.length > 0 && <div className="fotos">{d.fotos.map(u => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="" /></a>)}</div>}
+            {d.fotos?.length > 0 && <div className="fotos" onClick={e => e.stopPropagation()}>{d.fotos.map(u => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="" /></a>)}</div>}
           </div>
         ))}
       </div>
@@ -130,21 +134,39 @@ export default function Categoria() {
       <div style={{ height: 12 }} />
       {despesaAberta && <FolhaDespesa inicial={despesaAberta} onFechar={() => setDespesaAberta(null)} onSalvo={recarregar} />}
       {acoesConta.folhas}
-      {fixoAberto && <FolhaFixo categoria_id={id} pessoas={pessoas} onFechar={() => setFixoAberto(false)} onSalvo={recarregar} />}
+      {fixoAberto && <FolhaFixo inicial={fixoAberto === true ? {} : fixoAberto} categoria_id={id} pessoas={pessoas} onFechar={() => setFixoAberto(false)} onSalvo={recarregar} />}
+      {editDespesa && <FolhaEditarDespesa despesa={editDespesa} onFechar={() => setEditDespesa(null)} onSalvo={recarregar} />}
     </>
   )
 }
 
-function FolhaFixo({ categoria_id, pessoas, onFechar, onSalvo }) {
-  const [f, setF] = useState({ descricao: '', valor: '', dia_vencimento: '', recorrencia: 'mensal', pessoa_id: '', debito_automatico: false })
+export function FolhaFixo({ inicial = {}, categoria_id, pessoas, cats, onFechar, onSalvo }) {
+  const toast = useToast()
+  const [f, setF] = useState({ descricao: '', valor: '', dia_vencimento: '', recorrencia: 'mensal', pessoa_id: '', debito_automatico: false, categoria_id: categoria_id || '',
+    ...Object.fromEntries(Object.entries(inicial).filter(([k]) => !['categorias', 'pessoas'].includes(k)).map(([k, v]) => [k, v ?? ''])),
+    ...(inicial.valor != null ? { valor: String(inicial.valor).replace('.', ',') } : {}) })
+  const [erro, setErro] = useState(null)
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
   const salvar = async () => {
-    if (!f.descricao || !f.valor) return
-    await supabase.from('custos_fixos').insert({ categoria_id, descricao: f.descricao, valor: Number(f.valor), dia_vencimento: f.dia_vencimento ? Number(f.dia_vencimento) : null, recorrencia: f.recorrencia, pessoa_id: f.pessoa_id || null, debito_automatico: f.debito_automatico })
-    onSalvo(); onFechar()
+    setErro(null)
+    const valor = numero(f.valor), dia = f.dia_vencimento === '' ? null : numero(f.dia_vencimento)
+    if (!f.descricao.trim()) return setErro('Informe a descrição.')
+    if (!valor) return setErro('Informe um valor válido (ex.: 120,50).')
+    if (dia !== null && (dia < 1 || dia > 31)) return setErro('O dia do vencimento deve ser de 1 a 31.')
+    if (!f.categoria_id) return setErro('Escolha a categoria.')
+    const payload = { categoria_id: f.categoria_id, descricao: f.descricao.trim(), valor, dia_vencimento: dia, recorrencia: f.recorrencia, pessoa_id: f.pessoa_id || null, debito_automatico: !!f.debito_automatico }
+    try {
+      if (f.id) await supabase.from('custos_fixos').update(payload).eq('id', f.id)
+      else await supabase.from('custos_fixos').insert({ ...payload, ativo: true })
+      toast(f.id ? 'Custo fixo atualizado' : 'Custo fixo salvo'); onSalvo(); onFechar()
+    } catch (e) { setErro(e.message) }
+  }
+  const excluir = async () => {
+    if (!confirm(`Excluir o custo fixo "${f.descricao}"? Os pagamentos já feitos continuam no histórico.`)) return
+    try { const r = await excluirOuArquivar('custos_fixos', f.id); toast(r === 'arquivado' ? 'Custo fixo removido (pagamentos mantidos)' : 'Custo fixo excluído'); onSalvo(); onFechar() } catch (e) { setErro(e.message) }
   }
   return (
-    <Sheet titulo="Novo custo fixo" onFechar={onFechar}>
+    <Sheet titulo={f.id ? 'Editar custo fixo' : 'Novo custo fixo'} onFechar={onFechar}>
       <div className="stack-y">
         <label className="field"><span className="l">Descrição</span><input className="input" value={f.descricao} onChange={e => set('descricao', e.target.value)} placeholder="Ex.: conta de luz, limpeza semanal" /></label>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -152,9 +174,12 @@ function FolhaFixo({ categoria_id, pessoas, onFechar, onSalvo }) {
           <label className="field" style={{ flex: 1 }}><span className="l">Dia do venc.</span><input className="input" inputMode="numeric" value={f.dia_vencimento} onChange={e => set('dia_vencimento', e.target.value)} placeholder="1 a 31" /></label>
         </div>
         <div className="field"><span className="l">Recorrência</span><div className="chips">{['semanal', 'quinzenal', 'mensal', 'anual'].map(v => <button key={v} type="button" className={`pick ${f.recorrencia === v ? 'on' : ''}`} onClick={() => set('recorrencia', v)}>{v}</button>)}</div></div>
-        <label className="field"><span className="l">Pessoa (se for pagamento a alguém)</span><select className="input" value={f.pessoa_id} onChange={e => set('pessoa_id', e.target.value)}><option value="">Nenhuma</option>{pessoas.map(p => <option key={p.id} value={p.id}>{p.nome} · {p.funcao}</option>)}</select></label>
+        <label className="field"><span className="l">Pessoa (se for pagamento a alguém)</span><select className="input" value={f.pessoa_id} onChange={e => set('pessoa_id', e.target.value)}><option value="">Nenhuma</option>{(pessoas || []).map(p => <option key={p.id} value={p.id}>{p.nome} · {p.funcao}</option>)}</select></label>
         <label className="field" style={{ display: 'flex', alignItems: 'center', gap: 10, flexDirection: 'row' }}><input type="checkbox" checked={f.debito_automatico} onChange={e => set('debito_automatico', e.target.checked)} style={{ width: 20, height: 20 }} /><span style={{ fontSize: 14 }}>Débito automático</span></label>
+        {cats && <label className="field"><span className="l">Categoria</span><select className="input" value={f.categoria_id} onChange={e => set('categoria_id', e.target.value)}><option value="">Escolher</option>{cats.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>}
+        {erro && <p style={{ color: 'var(--danger)', fontWeight: 700, fontSize: 13.5 }}>{erro}</p>}
         <button className="btn primary block" onClick={salvar}>Salvar custo fixo</button>
+        {f.id && <button className="btn block" style={{ color: 'var(--danger)' }} onClick={excluir}><Trash2 size={16} className="i" />Excluir custo fixo</button>}
       </div>
     </Sheet>
   )

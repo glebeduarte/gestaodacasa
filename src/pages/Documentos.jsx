@@ -66,7 +66,7 @@ export default function Documentos() {
           : <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {lista.map(d => { const Icon = ICONE_TIPO[d.tipo] || File; const dias = d.validade ? diasEntre(d.validade) : null
               return (
-                <button key={d.id} className="card" style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 120 }} onClick={() => abrirDocumento(d.arquivo_url)}>
+                <button key={d.id} className="card" style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 120 }} onClick={() => setNovo(d)}>
                   <span className="tile t-md c-docs"><Icon size={22} className="i" /></span>
                   <p style={{ fontWeight: 700, fontSize: 13.5, lineHeight: 1.25 }}>{d.nome}</p>
                   <div style={{ marginTop: 'auto' }}>{d.validade
@@ -77,14 +77,14 @@ export default function Documentos() {
           </div>}
       </section>
       <div style={{ height: 12 }} />
-      {novo && <FolhaDocumento cats={cats} onFechar={() => setNovo(false)} onSalvo={recarregar} />}
+      {novo && <FolhaDocumento inicial={novo === true ? {} : novo} cats={cats} onFechar={() => setNovo(false)} onSalvo={recarregar} />}
     </>
   )
 }
 
-function FolhaDocumento({ cats, onFechar, onSalvo }) {
+function FolhaDocumento({ inicial = {}, cats, onFechar, onSalvo }) {
   const toast = useToast()
-  const [f, setF] = useState({ nome: '', tipo: 'Outro', categoria_id: '', validade: '', observacoes: '' })
+  const [f, setF] = useState({ nome: '', tipo: 'Outro', categoria_id: '', validade: '', observacoes: '', ...Object.fromEntries(Object.entries(inicial).map(([k, v]) => [k, v ?? ''])) })
   const [arquivo, setArquivo] = useState(null)
   const [salvando, setSalvando] = useState(false)
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
@@ -92,24 +92,36 @@ function FolhaDocumento({ cats, onFechar, onSalvo }) {
     if (!f.nome) return
     setSalvando(true)
     try {
-      let caminho = null
+      let caminho = f.arquivo_url || null
       if (arquivo) { const nome = `docs/${Date.now()}-${arquivo.name.replace(/[^a-zA-Z0-9.]/g, '_')}`; const { error } = await supabase.storage.from('documentos').upload(nome, arquivo); if (error) throw error; caminho = nome }
-      await supabase.from('documentos').insert({ nome: f.nome, tipo: f.tipo, categoria_id: f.categoria_id || null, validade: f.validade || null, observacoes: f.observacoes || null, arquivo_url: caminho })
+      const payload = { nome: f.nome, tipo: f.tipo, categoria_id: f.categoria_id || null, validade: f.validade || null, observacoes: f.observacoes || null, arquivo_url: caminho }
+      if (f.id) await supabase.from('documentos').update(payload).eq('id', f.id)
+      else await supabase.from('documentos').insert(payload)
       toast('Documento guardado'); onSalvo(); onFechar()
-    } catch (e) { alert(e.message) } finally { setSalvando(false) }
+    } catch { /* aviso já mostrado */ } finally { setSalvando(false) }
+  }
+  const excluir = async () => {
+    if (!confirm(`Excluir o documento "${f.nome}"?`)) return
+    try {
+      await supabase.from('documentos').delete().eq('id', f.id)
+      if (f.arquivo_url && !f.arquivo_url.startsWith('http')) await supabase.storage.from('documentos').remove([f.arquivo_url])
+      toast('Documento excluído'); onSalvo(); onFechar()
+    } catch { /* aviso já mostrado */ }
   }
   return (
-    <Sheet titulo="Novo documento" onFechar={onFechar}>
+    <Sheet titulo={f.id ? 'Documento' : 'Novo documento'} onFechar={onFechar}>
       <div className="stack-y">
+        {f.arquivo_url && <button type="button" className="btn dark block" onClick={() => abrirDocumento(f.arquivo_url)}><File size={16} className="i" />Abrir arquivo</button>}
         <label className="field"><span className="l">Nome</span><input className="input" value={f.nome} onChange={e => set('nome', e.target.value)} placeholder="Ex.: Escritura da casa" /></label>
         <div className="field"><span className="l">Tipo</span><div className="chips">{TIPOS_DOC.map(([t]) => <button key={t} type="button" className={`pick ${f.tipo === t ? 'on' : ''}`} onClick={() => set('tipo', t)}>{t}</button>)}</div></div>
         <div style={{ display: 'flex', gap: 10 }}>
           <label className="field" style={{ flex: 1 }}><span className="l">Categoria</span><select className="input" value={f.categoria_id} onChange={e => set('categoria_id', e.target.value)}><option value="">Nenhuma</option>{cats.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
           <label className="field" style={{ flex: 1 }}><span className="l">Validade</span><input className="input" type="date" value={f.validade} onChange={e => set('validade', e.target.value)} /></label>
         </div>
-        <label className="upload"><span className="tile t-md c-docs"><File size={22} className="i" /></span><div><b style={{ color: 'var(--ink)', fontSize: 14.5 }}>{arquivo ? arquivo.name : 'Anexar arquivo'}</b><p className="muted">PDF ou foto</p></div><input type="file" accept="image/*,application/pdf" hidden onChange={e => setArquivo(e.target.files[0])} /></label>
+        <label className="upload"><span className="tile t-md c-docs"><File size={22} className="i" /></span><div><b style={{ color: 'var(--ink)', fontSize: 14.5 }}>{arquivo ? arquivo.name : f.arquivo_url ? 'Trocar arquivo' : 'Anexar arquivo'}</b><p className="muted">PDF ou foto</p></div><input type="file" accept="image/*,application/pdf" hidden onChange={e => setArquivo(e.target.files[0])} /></label>
         <label className="field"><span className="l">Observações</span><textarea className="input" value={f.observacoes} onChange={e => set('observacoes', e.target.value)} /></label>
         <button className="btn primary block" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : 'Guardar documento'}</button>
+        {f.id && <button className="btn block" style={{ color: 'var(--danger)' }} onClick={excluir}>Excluir documento</button>}
       </div>
     </Sheet>
   )

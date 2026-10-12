@@ -5,6 +5,9 @@ import { Sheet } from './ui/Sheet'
 import { useToast } from './ui/Toast'
 import { enviarFotos } from './Upload'
 import { brl, hoje, dataCurta } from '../util'
+import { excluirDespesa } from '../lib/crud'
+import { FolhaEditarDespesa } from './FolhaEditarDespesa'
+import { Pencil } from 'lucide-react'
 
 const PAGAMENTOS = ['Pix', 'Dinheiro', 'Cartão', 'Transferência']
 export const TIPO_ITEM = {
@@ -92,11 +95,11 @@ export function FolhaPagamento({ pessoa, onFechar, onSalvo }) {
 // Detalhe de um pagamento já feito, com seus itens
 export function FolhaVerPagamento({ despesa, onFechar, onSalvo }) {
   const toast = useToast()
+  const [editar, setEditar] = useState(false)
   const itens = [...(despesa.pagamento_itens || [])].sort((a, b) => a.ordem - b.ordem)
   const excluir = async () => {
     if (!confirm(`Excluir este pagamento de ${brl(despesa.valor)}?`)) return
-    await supabase.from('despesas').delete().eq('id', despesa.id)
-    toast('Pagamento excluído'); onSalvo?.(); onFechar()
+    try { await excluirDespesa(despesa.id); toast('Pagamento excluído'); onSalvo?.(); onFechar() } catch { /* aviso já mostrado */ }
   }
   return (
     <Sheet titulo={`Pagamento de ${dataCurta(despesa.data)}`} onFechar={onFechar}>
@@ -109,8 +112,12 @@ export function FolhaVerPagamento({ despesa, onFechar, onSalvo }) {
         <p className="muted">{dataCurta(despesa.data)}{despesa.forma_pagamento ? ` · ${despesa.forma_pagamento}` : ''}</p>
         {despesa.explicacao && <div className="tip"><p className="s" style={{ marginTop: 0 }}>{despesa.explicacao}</p></div>}
         {despesa.fotos?.length > 0 && <div className="photos">{despesa.fotos.map((u, i) => <a key={i} href={u} target="_blank" rel="noreferrer"><img src={u} alt="" /></a>)}</div>}
-        <button className="btn block" style={{ color: 'var(--danger)' }} onClick={excluir}><Trash2 size={16} className="i" />Excluir pagamento</button>
+        <div className="btnrow">
+          <button className="btn" style={{ flex: 1 }} onClick={() => setEditar(true)}><Pencil size={16} className="i" />Editar</button>
+          <button className="btn" style={{ flex: 1, color: 'var(--danger)' }} onClick={excluir}><Trash2 size={16} className="i" />Excluir</button>
+        </div>
       </div>
+      {editar && <FolhaEditarDespesa despesa={despesa} onFechar={() => setEditar(false)} onSalvo={() => { onSalvo?.(); onFechar() }} />}
     </Sheet>
   )
 }

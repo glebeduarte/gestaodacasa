@@ -3,13 +3,15 @@ import { useParams } from 'react-router-dom'
 import { Phone, MessageCircle, Pencil, Check, Plus, FileText, Hammer, Package, ListChecks } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, soma } from '../hooks'
-import { brl, dataCurta, iniciais, diasAte, semanasDesde, semanasTotal } from '../util'
+import { brl, dataCurta, iniciais, diasAte, semanasDesde, semanasTotal, numero } from '../util'
 import { BackBar } from '../components/ui/BackBar'
 import { FolhaDespesa } from '../components/FolhaDespesa'
 import { FolhaObra } from './Obras'
 import { Sheet } from '../components/ui/Sheet'
 import { catStyle } from '../lib/categoryStyle'
 import { useToast } from '../components/ui/Toast'
+import { FolhaEditarDespesa } from '../components/FolhaEditarDespesa'
+import { Trash2 } from 'lucide-react'
 
 const STATUS_CHIP = { orcamento_pendente: ['warn', 'Orçamento pendente'], em_andamento: ['pool', 'Em andamento'], pausada: ['', 'Pausada'], concluida: ['ok', 'Concluída'], cancelada: ['danger', 'Cancelada'] }
 
@@ -20,6 +22,7 @@ export default function Obra() {
   const [editar, setEditar] = useState(false)
   const [orc, setOrc] = useState(false)
   const [att, setAtt] = useState(false)
+  const [editDespesa, setEditDespesa] = useState(null)
   const [novoItem, setNovoItem] = useState('')
   const [filtroCk, setFiltroCk] = useState('todos')
 
@@ -143,9 +146,9 @@ export default function Obra() {
         <div className="sec-h"><h2>Pagamentos</h2><button className="link" onClick={() => setPagar(true)}>+ Registrar</button></div>
         <div className="px">{despesas.length === 0 ? <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nenhum pagamento ou material registrado ainda.</p></div>
           : <div className="list">{despesas.map(d => (
-            <div key={d.id} className="row"><span className={`tile t-md ${d.tipo === 'material' ? 'c-estoque' : 'c-obras'}`}>{d.tipo === 'material' ? <Package size={22} className="i" /> : <Hammer size={22} className="i" />}</span>
+            <button key={d.id} type="button" className="row" onClick={() => setEditDespesa(d)}><span className={`tile t-md ${d.tipo === 'material' ? 'c-estoque' : 'c-obras'}`}>{d.tipo === 'material' ? <Package size={22} className="i" /> : <Hammer size={22} className="i" />}</span>
               <div className="grow"><p className="t">{d.descricao}</p><p className="s">{dataCurta(d.data)}{d.forma_pagamento ? ` · ${d.forma_pagamento}` : ''}{d.fotos?.length ? ' · nota anexada' : ''}</p></div>
-              <p className="num" style={{ fontWeight: 800 }}>{brl(d.valor)}</p></div>
+              <p className="num" style={{ fontWeight: 800 }}>{brl(d.valor)}</p></button>
           ))}</div>}</div>
       </section>
 
@@ -156,14 +159,15 @@ export default function Obra() {
             <div key={g.id} className="card"><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div><p style={{ fontWeight: 700 }}>{g.fornecedor || g.pessoas?.nome || 'Fornecedor'}</p><p className="muted">{g.validade ? `válido até ${dataCurta(g.validade)}` : 'sem validade'}{g.observacoes ? ` · ${g.observacoes}` : ''}</p></div>
               <b className="num">{brl(g.valor)}</b></div>
-              <div style={{ marginTop: 10 }}>{g.aprovado ? <span className="chip ok"><Check size={13} className="i" />Aprovado</span> : <button className="btn sm dark" onClick={() => aprovar(g)}>Aprovar este</button>}</div>
+              <div style={{ marginTop: 10, display: 'flex', gap: 6, alignItems: 'center' }}>{g.aprovado ? <span className="chip ok"><Check size={13} className="i" />Aprovado</span> : <button className="btn sm dark" onClick={() => aprovar(g)}>Aprovar este</button>}
+                <span style={{ flex: 1 }} /><button className="iconbtn" style={{ width: 34, height: 34 }} onClick={() => setOrc(g)} aria-label="Editar"><Pencil size={15} className="i" /></button></div>
             </div>
           ))}</div>}</div>
       </section>
 
       <section className="sec"><div className="sec-h"><h2>Andamento</h2><button className="link" onClick={() => setAtt(true)}>+ Anotar</button></div>
         <div className="px">{atts.length === 0 ? <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nenhuma anotação. Registre o que aconteceu em cada visita ou semana.</p></div>
-          : <div className="list">{atts.map(a => <div key={a.id} className="row"><div className="grow"><p className="s" style={{ marginTop: 0, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{a.texto}</p></div><span className="muted">{dataCurta(a.data || (a.criado_em || '').slice(0, 10))}</span></div>)}</div>}</div>
+          : <div className="list">{atts.map(a => <button key={a.id} type="button" className="row" onClick={() => setAtt(a)}><div className="grow"><p className="s" style={{ marginTop: 0, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{a.texto}</p></div><span className="muted">{dataCurta(a.data || (a.criado_em || '').slice(0, 10))}</span></button>)}</div>}</div>
       </section>
 
       {fotos.length > 0 && (
@@ -179,18 +183,28 @@ export default function Obra() {
 
       {pagar && <FolhaDespesa inicial={{ tipo: 'obra', obra_id: o.id, categoria_id: o.categoria_id || '', pessoa_id: o.empreiteiro_id || '', descricao: '' }} onFechar={() => setPagar(false)} onSalvo={recarregar} />}
       {editar && <FolhaObra inicial={(({ pessoas: _p, categorias: _c, ...r }) => r)(o)} itensIniciais={itens} cats={cats} pessoas={pessoas} onFechar={() => setEditar(false)} onSalvo={recarregar} />}
-      {orc && <FolhaOrcamento obra_id={o.id} pessoas={pessoas} onFechar={() => setOrc(false)} onSalvo={recarregar} />}
-      {att && <FolhaAtualizacao obra_id={o.id} onFechar={() => setAtt(false)} onSalvo={recarregar} />}
+      {editDespesa && <FolhaEditarDespesa despesa={editDespesa} onFechar={() => setEditDespesa(null)} onSalvo={recarregar} />}
+      {orc && <FolhaOrcamento inicial={orc === true ? {} : orc} obra_id={o.id} pessoas={pessoas} onFechar={() => setOrc(false)} onSalvo={recarregar} />}
+      {att && <FolhaAtualizacao inicial={att === true ? {} : att} obra_id={o.id} onFechar={() => setAtt(false)} onSalvo={recarregar} />}
     </>
   )
 }
 
-function FolhaOrcamento({ obra_id, pessoas, onFechar, onSalvo }) {
-  const [f, setF] = useState({ fornecedor: '', pessoa_id: '', valor: '', validade: '', observacoes: '' })
+function FolhaOrcamento({ inicial = {}, obra_id, pessoas, onFechar, onSalvo }) {
+  const [f, setF] = useState({ fornecedor: '', pessoa_id: '', valor: '', validade: '', observacoes: '', ...Object.fromEntries(Object.entries(inicial).filter(([k]) => k !== 'pessoas').map(([k, v]) => [k, v ?? ''])), ...(inicial.valor != null ? { valor: String(inicial.valor).replace('.', ',') } : {}) })
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
-  const salvar = async () => { if (!f.valor) return; await supabase.from('obra_orcamentos').insert({ obra_id, fornecedor: f.fornecedor || null, pessoa_id: f.pessoa_id || null, valor: Number(f.valor), validade: f.validade || null, observacoes: f.observacoes || null, aprovado: false }); onSalvo(); onFechar() }
+  const salvar = async () => {
+    const valor = numero(f.valor); if (!valor) return alert('Informe um valor válido.')
+    const payload = { fornecedor: f.fornecedor || null, pessoa_id: f.pessoa_id || null, valor, validade: f.validade || null, observacoes: f.observacoes || null }
+    try {
+      if (f.id) await supabase.from('obra_orcamentos').update(payload).eq('id', f.id)
+      else await supabase.from('obra_orcamentos').insert({ ...payload, obra_id, aprovado: false })
+      onSalvo(); onFechar()
+    } catch { /* aviso já mostrado */ }
+  }
+  const excluir = async () => { if (!confirm('Excluir este orçamento?')) return; try { await supabase.from('obra_orcamentos').delete().eq('id', f.id); onSalvo(); onFechar() } catch { /* aviso já mostrado */ } }
   return (
-    <Sheet titulo="Novo orçamento" onFechar={onFechar}>
+    <Sheet titulo={f.id ? 'Editar orçamento' : 'Novo orçamento'} onFechar={onFechar}>
       <div className="stack-y">
         <label className="field"><span className="l">Fornecedor</span><input className="input" value={f.fornecedor} onChange={e => set('fornecedor', e.target.value)} placeholder="Nome de quem orçou" /></label>
         <label className="field"><span className="l">Ou pessoa cadastrada</span><select className="input" value={f.pessoa_id} onChange={e => set('pessoa_id', e.target.value)}><option value="">Nenhuma</option>{(pessoas || []).map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></label>
@@ -200,21 +214,31 @@ function FolhaOrcamento({ obra_id, pessoas, onFechar, onSalvo }) {
         </div>
         <label className="field"><span className="l">Observações</span><textarea className="input" value={f.observacoes} onChange={e => set('observacoes', e.target.value)} /></label>
         <button className="btn primary block" onClick={salvar}>Salvar orçamento</button>
+        {f.id && <button className="btn block" style={{ color: 'var(--danger)' }} onClick={excluir}><Trash2 size={16} className="i" />Excluir orçamento</button>}
       </div>
     </Sheet>
   )
 }
 
-function FolhaAtualizacao({ obra_id, onFechar, onSalvo }) {
-  const [f, setF] = useState({ data: new Date().toISOString().slice(0, 10), texto: '' })
+function FolhaAtualizacao({ inicial = {}, obra_id, onFechar, onSalvo }) {
+  const [f, setF] = useState({ data: new Date().toISOString().slice(0, 10), texto: '', ...Object.fromEntries(Object.entries(inicial).map(([k, v]) => [k, v ?? ''])) })
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
-  const salvar = async () => { if (!f.texto) return; await supabase.from('obra_atualizacoes').insert({ obra_id, data: f.data, texto: f.texto, tipo: 'nota' }); onSalvo(); onFechar() }
+  const salvar = async () => {
+    if (!f.texto.trim()) return
+    try {
+      if (f.id) await supabase.from('obra_atualizacoes').update({ data: f.data, texto: f.texto }).eq('id', f.id)
+      else await supabase.from('obra_atualizacoes').insert({ obra_id, data: f.data, texto: f.texto, tipo: 'nota' })
+      onSalvo(); onFechar()
+    } catch { /* aviso já mostrado */ }
+  }
+  const excluir = async () => { if (!confirm('Excluir esta anotação?')) return; try { await supabase.from('obra_atualizacoes').delete().eq('id', f.id); onSalvo(); onFechar() } catch { /* aviso já mostrado */ } }
   return (
-    <Sheet titulo="Anotar andamento" onFechar={onFechar}>
+    <Sheet titulo={f.id ? 'Editar anotação' : 'Anotar andamento'} onFechar={onFechar}>
       <div className="stack-y">
         <label className="field"><span className="l">Data</span><input className="input" type="date" value={f.data} onChange={e => set('data', e.target.value)} /></label>
         <label className="field"><span className="l">O que aconteceu</span><textarea className="input" value={f.texto} onChange={e => set('texto', e.target.value)} placeholder="Ex.: estrutura pronta, faltou material" /></label>
         <button className="btn primary block" onClick={salvar}>Salvar</button>
+        {f.id && <button className="btn block" style={{ color: 'var(--danger)' }} onClick={excluir}><Trash2 size={16} className="i" />Excluir anotação</button>}
       </div>
     </Sheet>
   )

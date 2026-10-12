@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Hammer, Plus, Lightbulb, X, ListChecks } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, q, soma } from '../hooks'
-import { brl, brlCurto, dataCurta, semanasDesde, semanasTotal } from '../util'
+import { brl, brlCurto, dataCurta, semanasDesde, semanasTotal, numero } from '../util'
 import { CatTile } from '../lib/categoryStyle'
 import { Sheet } from '../components/ui/Sheet'
 
@@ -98,11 +98,22 @@ export function FolhaObra({ inicial = {}, itensIniciais = [], cats, pessoas, onF
   }
   const editItem = (i, k, v) => setItens(x => x.map((it, j) => j === i ? { ...it, [k]: v } : it))
   const delItem = (i) => setItens(x => x.filter((_, j) => j !== i))
+  const excluirObra = async () => {
+    if (!confirm(`Excluir a obra "${f.nome}"? Checklist, orçamentos e anotações serão apagados. Os pagamentos continuam no histórico, sem vínculo com a obra.`)) return
+    try {
+      await supabase.from('despesas').update({ obra_id: null }).eq('obra_id', f.id)
+      await supabase.from('documentos').update({ obra_id: null }).eq('obra_id', f.id)
+      await Promise.all(['obra_itens', 'obra_atualizacoes', 'obra_orcamentos'].map(t => supabase.from(t).delete().eq('obra_id', f.id)))
+      await supabase.from('obras').delete().eq('id', f.id)
+      onSalvo(); onFechar(); if (location.pathname !== '/obras') location.assign('/obras')
+    } catch { /* aviso já mostrado */ }
+  }
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
   const salvar = async () => {
     if (!f.nome || salvando) return
     setSalvando(true)
-    const payload = { nome: f.nome, area_casa: f.area_casa || null, categoria_id: f.categoria_id || null, empreiteiro_id: f.empreiteiro_id || null, status: f.status, data_inicio: f.data_inicio || null, prazo_previsto: f.prazo_previsto || null, orcamento_total: f.orcamento_total ? Number(f.orcamento_total) : null, combinado_verbal: f.combinado_verbal, descricao: f.descricao || null }
+    try {
+    const payload = { nome: f.nome, area_casa: f.area_casa || null, categoria_id: f.categoria_id || null, empreiteiro_id: f.empreiteiro_id || null, status: f.status, data_inicio: f.data_inicio || null, prazo_previsto: f.prazo_previsto || null, orcamento_total: f.orcamento_total ? numero(f.orcamento_total) : null, combinado_verbal: f.combinado_verbal, descricao: f.descricao || null }
     let obraId = f.id
     if (obraId) await supabase.from('obras').update(payload).eq('id', obraId)
     else obraId = (await supabase.from('obras').insert(payload).select('id').single()).data?.id
@@ -115,6 +126,7 @@ export function FolhaObra({ inicial = {}, itensIniciais = [], cats, pessoas, onF
         : supabase.from('obra_itens').insert({ obra_id: obraId, descricao: it.descricao.trim(), concluido: false, ordem })))
     }
     setSalvando(false); onSalvo(); onFechar()
+    } catch { setSalvando(false) }
   }
   return (
     <Sheet titulo={f.id ? 'Editar obra' : 'Nova obra'} onFechar={onFechar}>
@@ -146,6 +158,7 @@ export function FolhaObra({ inicial = {}, itensIniciais = [], cats, pessoas, onF
           </div>
         </div>
         <button className="btn primary block" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar obra'}</button>
+        {f.id && <button className="btn block" style={{ color: 'var(--danger)' }} onClick={excluirObra}>Excluir obra</button>}
       </div>
     </Sheet>
   )
