@@ -53,14 +53,13 @@ export default function Pessoas() {
     let status, chip
     if (p.recorrente === false) { status = 'avulso'; chip = ultimo ? { cls: '', txt: `Último: ${dataCurta(ultimo.data)}` } : { cls: '', txt: 'Pagamento avulso' } }
     else if (p.frequencia === 'por_obra' || p.unidade_valor === 'obra') { status = 'obra'; chip = obra ? { cls: 'pool', txt: `Obra: ${obra.nome}` } : { cls: '', txt: 'Por obra' } }
-    else if (totalPago >= prev && prev > 0) { status = 'pago'; chip = { cls: 'ok', txt: ultimo ? `Pago em ${dataCurta(ultimo.data)}` : 'Pago' } }
-    else { status = 'apagar'; chip = { cls: 'warn', txt: 'A pagar este mês' } }
+    else if (ultimo) { status = 'pago'; chip = { cls: 'ok', txt: `Pago em ${dataCurta(ultimo.data)}` } }
+    else { status = 'apagar'; chip = { cls: '', txt: 'Sem pagamento no mês' } }
     return { ...p, prev, totalPago, status, chip, obra }
   })
 
-  const previsto = comStatus.reduce((t, p) => t + (p.status === 'obra' || p.status === 'avulso' ? 0 : p.prev), 0)
   const jaPago = soma(comStatus.map(p => ({ v: p.totalPago })), 'v')
-  const falta = Math.max(0, previsto - jaPago)
+  const pagamentosMes = despesas.filter(d => d.pessoa_id).length
   const apagar = comStatus.filter(p => p.status === 'apagar').length
 
   let lista = comStatus
@@ -75,15 +74,14 @@ export default function Pessoas() {
       <BackBar titulo="Pessoas" acao={<button className="iconbtn" onClick={() => setNova({})} aria-label="Nova"><Plus size={20} className="i" /></button>} />
       <header className="hdr" style={{ paddingTop: 12, paddingBottom: 8 }}><div><p className="eyebrow">Quem cuida da casa</p><h1>Pessoas</h1></div></header>
 
-      <div className="px stats">
-        <div className="stat"><p className="l">Previsto</p><p className="v num">{brl(previsto)}</p></div>
-        <div className="stat"><p className="l" style={{ color: 'var(--ok)' }}>Já pago</p><p className="v num">{brl(jaPago)}</p></div>
-        <div className="stat"><p className="l" style={{ color: 'var(--danger)' }}>Falta</p><p className="v num">{brl(falta)}</p></div>
+      <div className="px stats two">
+        <div className="stat"><p className="l" style={{ color: 'var(--ok)' }}>Pago no mês</p><p className="v num">{brl(jaPago)}</p></div>
+        <div className="stat"><p className="l">Pagamentos no mês</p><p className="v num">{pagamentosMes}</p></div>
       </div>
 
       <div className="hscroll mt16">
         <button className={`pick ${filtro === 'todos' ? 'on' : ''}`} onClick={() => setFiltro('todos')}>Todos</button>
-        <button className={`pick ${filtro === 'apagar' ? 'on' : ''}`} onClick={() => setFiltro('apagar')}>A pagar{apagar ? ` · ${apagar}` : ''}</button>
+        <button className={`pick ${filtro === 'apagar' ? 'on' : ''}`} onClick={() => setFiltro('apagar')}>Sem pagamento no mês{apagar ? ` · ${apagar}` : ''}</button>
         <button className={`pick ${filtro === 'semana' ? 'on' : ''}`} onClick={() => setFiltro('semana')}>Vêm esta semana</button>
         <button className={`pick ${filtro === 'obras' ? 'on' : ''}`} onClick={() => setFiltro('obras')}>Obras</button>
       </div>
@@ -95,7 +93,7 @@ export default function Pessoas() {
             <Link to={`/pessoas/${p.id}`} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
               <div className={`pill-av ${corAvatar(p)}`}>{iniciais(p.nome)}</div>
               <div style={{ flex: 1, minWidth: 0 }}><h3>{p.nome}</h3><p className="sub">{p.funcao}</p></div>
-              <div style={{ textAlign: 'right' }}><p style={{ fontWeight: 800 }} className="num">{brl(p.valor_combinado)}</p><p className="muted">{UNIDADE[p.unidade_valor] || p.frequencia || ''}</p><span className={`chip ${p.recorrente === false ? '' : 'pool'}`} style={{ marginTop: 4 }}>{p.recorrente === false ? 'Avulso' : 'Recorrente'}</span></div>
+              <div style={{ textAlign: 'right' }}>{p.valor_combinado ? <p style={{ fontWeight: 800 }} className="num">{brl(p.valor_combinado)}</p> : null}<p className="muted">{UNIDADE[p.unidade_valor] || p.frequencia || ''}</p><span className={`chip ${p.recorrente === false ? '' : 'pool'}`} style={{ marginTop: 4 }}>{p.recorrente === false ? 'Avulso' : 'Recorrente'}</span></div>
             </Link>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, gap: 8 }}>
               {(p.dias_semana || []).length > 0
@@ -106,7 +104,7 @@ export default function Pessoas() {
             <div className="btnrow mt12">
               {tel(p) && <a className="btn sm wa" href={`https://wa.me/55${tel(p)}`} target="_blank" rel="noreferrer"><MessageCircle size={15} className="i" />WhatsApp</a>}
               {tel(p) && <a className="btn sm call" href={`tel:${tel(p)}`}><Phone size={15} className="i" />Ligar</a>}
-              {p.status !== 'pago' && <Link className="btn sm primary" to={`/pessoas/${p.id}`}>Pagar</Link>}
+              <Link className="btn sm primary" to={`/pessoas/${p.id}`}>Pagar</Link>
             </div>
           </div>
         ))}
@@ -145,7 +143,7 @@ export function FolhaPessoa({ inicial = {}, cats, onFechar, onSalvo }) {
         </div>
         <label className="field"><span className="l">Categoria</span><select className="input" value={f.categoria_id} onChange={e => set('categoria_id', e.target.value)}><option value="">Nenhuma</option>{(cats || []).map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
         <div style={{ display: 'flex', gap: 10 }}>
-          <label className="field" style={{ flex: 1 }}><span className="l">Valor combinado</span><input className="input" inputMode="decimal" value={f.valor_combinado} onChange={e => set('valor_combinado', e.target.value)} /></label>
+          <label className="field" style={{ flex: 1 }}><span className="l">Valor de referência (opcional)</span><input className="input" inputMode="decimal" value={f.valor_combinado} onChange={e => set('valor_combinado', e.target.value)} /></label>
           <label className="field" style={{ flex: 1 }}><span className="l">Unidade</span><select className="input" value={f.unidade_valor} onChange={e => set('unidade_valor', e.target.value)}>{Object.entries(UNIDADE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
         </div>
         <div className="field"><span className="l">Tipo de pagamento</span>
@@ -153,7 +151,7 @@ export function FolhaPessoa({ inicial = {}, cats, onFechar, onSalvo }) {
             <button type="button" className={f.recorrente !== false ? 'on' : ''} onClick={() => set('recorrente', true)}>Recorrente</button>
             <button type="button" className={f.recorrente === false ? 'on' : ''} onClick={() => set('recorrente', false)}>Avulso</button>
           </div>
-          <p className="muted" style={{ marginTop: 6 }}>{f.recorrente === false ? 'Paga só quando faz um serviço. Não entra no previsto do mês.' : 'Valor fixo combinado, entra no previsto de todo mês.'}</p>
+          <p className="muted" style={{ marginTop: 6 }}>{f.recorrente === false ? 'Paga só quando faz um serviço.' : 'Pagamento frequente, com valor de referência (pode variar a cada mês).' }</p>
         </div>
         {f.recorrente !== false && <label className="field"><span className="l">Frequência</span><select className="input" value={f.frequencia} onChange={e => set('frequencia', e.target.value)}>{['semanal', 'quinzenal', 'mensal', 'por_demanda', 'por_obra'].map(v => <option key={v} value={v}>{v.replace('_', ' ')}</option>)}</select></label>}
         <div className="field"><span className="l">Dias da semana</span><div className="days">{DIAS.map((d, i) => <button key={i} type="button" className={f.dias_semana.includes(DIAS_KEY[i]) ? 'on' : ''} onClick={() => toggleDia(DIAS_KEY[i])} style={{ width: 34, height: 34, borderRadius: 10, fontWeight: 800, fontSize: 12, background: f.dias_semana.includes(DIAS_KEY[i]) ? 'var(--pool-soft)' : 'var(--surface-2)', color: f.dias_semana.includes(DIAS_KEY[i]) ? '#08798C' : '#A8B7C6' }}>{d}</button>)}</div></div>

@@ -90,7 +90,7 @@ export default function Admin({ sessao }) {
           <div className="list">{pessoas.map(p => (
             <button key={p.id} className="row" onClick={() => setEditPessoa(p)}>
               <div className={`pill-av ${corAvatar(p)}`} style={{ width: 40, height: 40, fontSize: 14, borderRadius: 13 }}>{(p.nome || '?').slice(0, 2).toUpperCase()}</div>
-              <div className="grow"><p className="t">{p.nome}</p><p className="s">{p.funcao} · {brl(p.valor_combinado)}</p></div><Pencil size={16} className="i chev" />
+              <div className="grow"><p className="t">{p.nome}</p><p className="s">{p.funcao}{p.valor_combinado ? ` · ${brl(p.valor_combinado)}` : ''}</p></div><Pencil size={16} className="i chev" />
             </button>
           ))}</div>
           <button className="btn soft block mt16" onClick={() => setNovaPessoa(true)}><Plus size={18} className="i" />Nova pessoa</button>

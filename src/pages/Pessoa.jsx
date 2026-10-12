@@ -6,7 +6,7 @@ import { useDados, soma } from '../hooks'
 import { brl, dataCurta, iniciais, mesAtual, UNIDADE } from '../util'
 import { BackBar } from '../components/ui/BackBar'
 import { FolhaPagamento, FolhaVerPagamento, TIPO_ITEM } from '../components/FolhaPagamento'
-import { FolhaPessoa, corAvatar, previstoMes } from './Pessoas'
+import { FolhaPessoa, corAvatar } from './Pessoas'
 
 export default function Pessoa() {
   const { id } = useParams()
@@ -27,7 +27,6 @@ export default function Pessoa() {
   const { p, cats, despesas } = dados
   const m = mesAtual()
   const doMes = despesas.filter(d => d.data >= m.ini && d.data <= m.fim)
-  const prev = previstoMes(p)
   const pago = soma(doMes)
   const tel = (p.telefone || '').replace(/\D/g, '')
 
@@ -46,18 +45,11 @@ export default function Pessoa() {
         {tel && <a className="btn call" href={`tel:${tel}`}><Phone size={18} className="i" />Ligar</a>}
       </div>
 
-      {p.recorrente === false ? (
-        <div className="px stats two mt16">
-          <div className="stat"><p className="l" style={{ color: 'var(--ok)' }}>Pago no mês</p><p className="v num">{brl(pago)}</p></div>
-          <div className="stat"><p className="l">Pagamentos no mês</p><p className="v num">{doMes.length}</p></div>
-        </div>
-      ) : (
-        <div className="px stats mt16">
-          <div className="stat"><p className="l">Previsto/mês</p><p className="v num">{brl(prev)}</p></div>
-          <div className="stat"><p className="l" style={{ color: 'var(--ok)' }}>Pago no mês</p><p className="v num">{brl(pago)}</p></div>
-          <div className="stat"><p className="l" style={{ color: 'var(--danger)' }}>Falta</p><p className="v num">{brl(Math.max(0, prev - pago))}</p></div>
-        </div>
-      )}
+      <div className="px stats mt16">
+        <div className="stat"><p className="l" style={{ color: 'var(--ok)' }}>Pago no mês</p><p className="v num">{brl(pago)}</p></div>
+        <div className="stat"><p className="l">Pagamentos no mês</p><p className="v num">{doMes.length}</p></div>
+        <div className="stat"><p className="l">Último</p><p className="v">{despesas[0] ? dataCurta(despesas[0].data) : '—'}</p></div>
+      </div>
 
       {p.observacoes && <div className="px mt16"><div className="tip"><p className="s" style={{ marginTop: 0 }}>{p.observacoes}</p></div></div>}
 
