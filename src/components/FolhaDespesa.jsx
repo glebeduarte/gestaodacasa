@@ -131,8 +131,9 @@ export function FolhaDespesa({ onFechar, onSalvo, inicial = {} }) {
           <div className="chips">
             <button type="button" className={`pick ${f.quando === 'hoje' ? 'on' : ''}`} onClick={() => escolherQuando('hoje')}>Hoje</button>
             <button type="button" className={`pick ${f.quando === 'ontem' ? 'on' : ''}`} onClick={() => escolherQuando('ontem')}>Ontem</button>
-            <label className={`pick ${f.quando === 'outra' ? 'on' : ''}`} style={{ position: 'relative' }}><Calendar size={17} className="i" />{f.quando === 'outra' ? f.data.split('-').reverse().join('/') : 'Outra data'}<input type="date" value={f.data} onChange={e => { set('data', e.target.value); set('quando', 'outra') }} style={{ position: 'absolute', inset: 0, opacity: 0 }} /></label>
-          </div></div>
+            <button type="button" className={`pick ${f.quando === 'outra' ? 'on' : ''}`} onClick={() => { set('quando', 'outra'); setTimeout(() => { const el = document.getElementById('data-outra'); try { el?.showPicker?.() } catch { el?.focus() } }, 50) }}><Calendar size={17} className="i" />{f.quando === 'outra' && f.data ? f.data.split('-').reverse().join('/') : 'Outra data'}</button>
+          </div>
+          {f.quando === 'outra' && <input id="data-outra" className="input mt8" type="date" value={f.data} max="2100-12-31" onChange={e => set('data', e.target.value)} />}</div>
 
         <div className="px mt24"><div className="step"><b>{f.tipo === 'variavel' ? '5' : '7'}</b>O que foi?</div>
           <input className="input" placeholder="Ex.: troca do motor da bomba" value={f.descricao} onChange={e => set('descricao', e.target.value)} />
