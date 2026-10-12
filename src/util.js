@@ -1,8 +1,8 @@
-const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 })
+const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmt2 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 export const brl = (v) => fmt.format(Number(v || 0))
 export const brl2 = (v) => fmt2.format(Number(v || 0))
-export const brlCurto = (v) => { const n = Number(v || 0); return n >= 10000 ? `R$ ${(n / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil` : brl(n) }
+export const brlCurto = (v) => brl(v)
 
 export const hoje = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10) }
 export const somarDias = (d, n) => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10) }

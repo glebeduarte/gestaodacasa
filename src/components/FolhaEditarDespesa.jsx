@@ -3,7 +3,7 @@ import { Trash2, Check } from 'lucide-react'
 import { supabase } from '../supabase'
 import { Sheet } from './ui/Sheet'
 import { useToast } from './ui/Toast'
-import { numero } from '../util'
+import { numero, brl } from '../util'
 import { excluirDespesa } from '../lib/crud'
 
 const FORMAS = ['Pix', 'Dinheiro', 'Cartão', 'Débito automático', 'Boleto', 'Transferência']
@@ -35,7 +35,7 @@ export function FolhaEditarDespesa({ despesa: d, onFechar, onSalvo }) {
     } catch { setSalvando(false) }
   }
   const excluir = async () => {
-    if (!confirm(`Excluir "${d.descricao}" de ${String(d.valor).replace('.', ',')}? Não dá para desfazer.`)) return
+    if (!confirm(`Excluir "${d.descricao}" de ${brl(d.valor)}? Não dá para desfazer.`)) return
     try { await excluirDespesa(d.id); toast('Registro excluído'); onSalvo?.(); onFechar() } catch { /* aviso já mostrado */ }
   }
   return (

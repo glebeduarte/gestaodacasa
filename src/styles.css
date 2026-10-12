@@ -420,3 +420,9 @@ details.more .inner{padding:0 16px 16px}
 .tip.ia-ok .i{color:var(--pool);flex:0 0 auto}
 @media (max-width:380px){.conta-resumo .cr b{font-size:14px}.det-grid{grid-template-columns:1fr}}
 .toast.erro{background:var(--danger);max-width:calc(100vw - 32px)}
+
+/* Valores sempre com centavos: encolhe a fonte em telas estreitas para não quebrar */
+.stat .v,.conta-resumo .cr b{font-size:clamp(12.5px,3.9vw,16px);white-space:nowrap;letter-spacing:-.01em}
+.stat{min-width:0}
+.stats .stat .v{overflow:hidden;text-overflow:ellipsis}
+.hero-value{font-size:clamp(30px,10vw,40px)}
