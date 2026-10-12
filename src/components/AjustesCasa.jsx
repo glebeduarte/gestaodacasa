@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Trash2, UserPlus, X, Check } from 'lucide-react'
 import { supabase, definirCasaAtual } from '../supabase'
@@ -7,6 +7,7 @@ import { TIPOS_CASA, MODULOS, pacoteInicial } from '../lib/tipos'
 import { useToast } from './ui/Toast'
 import { ICONE_MOD } from '../pages/Casas'
 import { hoje } from '../util'
+import { TEMAS, aplicarTema } from '../lib/temas'
 
 const PAPEIS = { dono: 'Dono', editor: 'Editor', leitura: 'Só leitura' }
 
@@ -14,7 +15,11 @@ export function AjustesCasa() {
   const { casa, ehDono, recarregar, casas } = useCasa()
   const toast = useToast()
   const nav = useNavigate()
-  const [f, setF] = useState({ nome: casa.nome, tipo: casa.tipo, cidade: casa.cidade || '' })
+  const [f, setF] = useState({ nome: casa.nome, tipo: casa.tipo, cidade: casa.cidade || '', tema: casa.tema || 'egeu' })
+  const temaSalvo = useRef(casa.tema)
+  temaSalvo.current = casa.tema
+  useEffect(() => () => aplicarTema(temaSalvo.current), [])
+  const escolherTema = (t) => { setF(x => ({ ...x, tema: t })); aplicarTema(t) }
   const [membros, setMembros] = useState([])
   const [convites, setConvites] = useState([])
   const [conv, setConv] = useState({ email: '', papel: 'editor' })
@@ -25,7 +30,8 @@ export function AjustesCasa() {
   useEffect(carregarMembros, [casa.id])
 
   const salvarCasa = async () => {
-    try { await supabase.from('casas').update({ nome: f.nome.trim(), tipo: f.tipo, cidade: f.cidade || null }).eq('id', casa.id); await recarregar(casa.id); toast('Casa atualizada') } catch { /* aviso já mostrado */ }
+    if (!f.nome.trim()) return toast({ txt: 'Dê um nome para a casa.', erro: true })
+    try { await supabase.from('casas').update({ nome: f.nome.trim(), tipo: f.tipo, cidade: f.cidade || null, tema: f.tema }).eq('id', casa.id); await recarregar(casa.id); toast('Casa atualizada') } catch { aplicarTema(casa.tema) }
   }
 
   // Ligar módulo cria o que falta (categorias, manutenções, estoque); desligar só esconde
@@ -86,6 +92,13 @@ export function AjustesCasa() {
         <div style={{ display: 'flex', gap: 10 }}>
           <label className="field" style={{ flex: 1 }}><span className="l">Tipo</span><select className="input" value={f.tipo} disabled={!ehDono} onChange={e => setF(x => ({ ...x, tipo: e.target.value }))}>{Object.entries(TIPOS_CASA).map(([k, t]) => <option key={k} value={k}>{t.nome}</option>)}</select></label>
           <label className="field" style={{ flex: 1 }}><span className="l">Cidade</span><input className="input" value={f.cidade} disabled={!ehDono} onChange={e => setF(x => ({ ...x, cidade: e.target.value }))} /></label>
+        </div>
+        <div className="field"><span className="l">Cor do tema</span>
+          <div className="temas">{Object.entries(TEMAS).map(([k, t]) => (
+            <button key={k} type="button" disabled={!ehDono} className={`tema ${f.tema === k ? 'on' : ''}`} onClick={() => escolherTema(k)} aria-label={t.nome}>
+              <span style={{ background: `linear-gradient(150deg,${t.hero[0]},${t.hero[2]})` }}>{f.tema === k && <Check size={16} strokeWidth={3} className="i" />}</span><small>{t.nome}</small>
+            </button>))}</div>
+          {ehDono && f.tema !== (casa.tema || 'egeu') && <p className="muted" style={{ marginTop: 6 }}>Prévia aplicada. Toque em Salvar para manter.</p>}
         </div>
         {ehDono && <button className="btn primary" onClick={salvarCasa}><Check size={16} className="i" />Salvar</button>}
       </div>

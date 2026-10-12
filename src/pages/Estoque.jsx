@@ -45,7 +45,7 @@ export default function Estoque() {
 
       {faltando.length > 0 && (
         <div className="px">
-          <div className="card" style={{ background: 'linear-gradient(150deg,#0B3B66,#1B7FB9)', color: '#fff' }}>
+          <div className="card" style={{ background: 'linear-gradient(150deg,var(--hero-a),var(--hero-c))', color: '#fff' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div><p className="eyebrow" style={{ color: '#9FE6F0' }}>Lista de compras</p><p style={{ fontFamily: 'var(--font-d)', fontSize: 22, fontWeight: 600, marginTop: 4 }}>{faltando.length} {faltando.length > 1 ? 'itens' : 'item'} para repor</p></div>
               <span className="tile t-md" style={{ background: 'rgba(255,255,255,.16)', color: '#fff' }}><Package size={22} className="i" /></span>

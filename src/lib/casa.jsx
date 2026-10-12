@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { supabase, definirCasaAtual } from '../supabase'
+import { aplicarTema } from './temas'
 
 const Ctx = createContext(null)
 export const useCasa = () => useContext(Ctx)
@@ -25,6 +26,7 @@ export function CasaProvider({ sessao, children }) {
   }, [uid])
 
   useEffect(() => { if (uid) carregar() }, [uid, carregar])
+  useEffect(() => { aplicarTema(casa?.tema) }, [casa?.tema, casa?.id])
 
   const trocar = (id) => { const c = casas.find(x => x.id === id); if (!c) return; definirCasaAtual(c.id); salvar(c.id); setCasa(c) }
   const valor = { casas, casa, trocar, recarregar: carregar, podeEditar: casa && casa.papel !== 'leitura', ehDono: casa?.papel === 'dono' }
