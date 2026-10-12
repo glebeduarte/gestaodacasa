@@ -21,7 +21,7 @@ export default function Pessoa() {
     const [p, cats, despesas, abertos] = await Promise.all([
       supabase.from('pessoas').select('*, categorias(*)').eq('id', id).single().then(r => r.data),
       supabase.from('categorias').select('id,nome,cor,icone').eq('ativo', true).then(r => r.data || []),
-      supabase.from('despesas').select('*, pagamento_itens(*)').eq('pessoa_id', id).gte('data', seis.toISOString().slice(0, 10)).order('data', { ascending: false }).then(r => r.data || []),
+      supabase.from('despesas').select('*, pagamento_itens!pagamento_itens_despesa_id_fkey(*)').eq('pessoa_id', id).gte('data', seis.toISOString().slice(0, 10)).order('data', { ascending: false }).then(r => r.data || []),
       supabase.from('despesas').select('id,valor,descontado,data,explicacao').eq('pessoa_id', id).eq('adiantamento', true).order('data').then(r => (r.data || []).filter(a => restante(a) > 0.004)),
     ])
     return { p, cats, despesas, abertos }

@@ -10,7 +10,7 @@ export default function Registros() {
   const [filtro, setFiltro] = useState('todos')
   const [editar, setEditar] = useState(null)
   const { dados, recarregar } = useDados(async () => {
-    const despesas = await supabase.from('despesas').select('*, categorias(nome,cor,icone), pessoas(nome), obras(nome), pagamento_itens(id)').order('data', { ascending: false }).limit(200).then(r => r.data || [])
+    const despesas = await supabase.from('despesas').select('*, categorias(nome,cor,icone), pessoas(nome), obras(nome), pagamento_itens!pagamento_itens_despesa_id_fkey(id)').order('data', { ascending: false }).limit(200).then(r => r.data || [])
     return { despesas }
   })
   if (!dados) return <p className="carregando">Carregando…</p>
