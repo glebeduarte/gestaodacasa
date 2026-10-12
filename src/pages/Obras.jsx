@@ -10,7 +10,7 @@ import { Sheet } from '../components/ui/Sheet'
 const ABERTAS = ['orcamento_pendente', 'em_andamento', 'pausada']
 
 export default function Obras() {
-  const [aba, setAba] = useState('abertas')
+  const [aba, setAba] = useState('todos')
   const [nova, setNova] = useState(false)
   const { dados, recarregar } = useDados(async () => {
     const [obras, cats, pessoas, despesas, itens] = await Promise.all([
@@ -24,10 +24,11 @@ export default function Obras() {
   })
   if (!dados) return <p className="carregando">Carregando…</p>
   const { obras, cats, pessoas, despesas, itens } = dados
-  const abertas = obras.filter(o => ABERTAS.includes(o.status))
-  const concluidas = obras.filter(o => o.status === 'concluida')
-  const lista = aba === 'abertas' ? abertas : concluidas
   const pagoDe = (id) => soma(despesas.filter(d => d.obra_id === id && d.tipo === 'obra'))
+  const ordemStatus = (s) => (ABERTAS.includes(s) ? 0 : s === 'concluida' ? 1 : 2)
+  const todas = [...obras].sort((a, b) => ordemStatus(a.status) - ordemStatus(b.status))
+  const semPagamento = todas.filter(o => !despesas.some(d => d.obra_id === o.id))
+  const lista = aba === 'todos' ? todas : semPagamento
 
   return (
     <>
@@ -35,14 +36,14 @@ export default function Obras() {
         <button className="iconbtn" onClick={() => setNova(true)} aria-label="Nova obra"><Plus size={20} className="i" /></button></header>
 
       <div className="px"><div className="seg">
-        <button className={aba === 'abertas' ? 'on' : ''} onClick={() => setAba('abertas')}>Abertas · {abertas.length}</button>
-        <button className={aba === 'concluidas' ? 'on' : ''} onClick={() => setAba('concluidas')}>Concluídas · {concluidas.length}</button>
+        <button className={aba === 'todos' ? 'on' : ''} onClick={() => setAba('todos')}>Todos · {todas.length}</button>
+        <button className={aba === 'sem' ? 'on' : ''} onClick={() => setAba('sem')}>Sem pagamentos · {semPagamento.length}</button>
       </div></div>
 
-      {aba === 'abertas' && <div className="px mt16"><div className="tip"><Lightbulb size={20} className="i" style={{ color: 'var(--pool)' }} /><div><p className="t">Registre antes de pagar</p><p className="s">Mesmo sem orçamento, anote o que foi combinado, o prazo e quem é o responsável.</p></div></div></div>}
+      {aba === 'todos' && <div className="px mt16"><div className="tip"><Lightbulb size={20} className="i" style={{ color: 'var(--pool)' }} /><div><p className="t">Registre antes de pagar</p><p className="s">Mesmo sem orçamento, anote o que foi combinado, o prazo e quem é o responsável.</p></div></div></div>}
 
       <section className="px mt16 stack-y">
-        {lista.length === 0 && <div className="tip"><p className="s" style={{ marginTop: 0 }}>{aba === 'abertas' ? 'Nenhuma obra aberta. Toque em nova obra para começar a acompanhar uma reforma.' : 'Nenhuma obra concluída ainda.'}</p></div>}
+        {lista.length === 0 && <div className="tip"><p className="s" style={{ marginTop: 0 }}>{aba === 'todos' ? 'Nenhuma obra cadastrada. Toque em nova obra para começar a acompanhar uma reforma.' : 'Todas as obras já receberam algum pagamento.'}</p></div>}
         {lista.map(o => {
           const pago = pagoDe(o.id)
           const sem = semanasDesde(o.data_inicio)
@@ -57,6 +58,8 @@ export default function Obras() {
                 {o.categorias ? <CatTile cat={o.categorias} size="md" /> : <span className="tile t-md c-obras"><Hammer size={22} className="i" /></span>}
                 <div style={{ flex: 1, minWidth: 0 }}><h3>{o.nome}</h3><p className="sub">{o.pessoas?.nome ? `${o.pessoas.nome}` : 'Sem responsável'}{o.area_casa ? ` · ${o.area_casa}` : ''}</p></div>
                 {o.status === 'concluida' ? <span className="chip ok">Concluída</span>
+                  : o.status === 'cancelada' ? <span className="chip danger">Cancelada</span>
+                  : o.status === 'pausada' ? <span className="chip">Pausada</span>
                   : o.orcamento_total ? <span className="chip pool">{totalSem ? `Semana ${sem}/${totalSem}` : 'Em andamento'}</span>
                     : <span className="chip warn">Sem orçamento</span>}
               </div>
