@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Phone, MessageCircle, Pencil, Check, Plus, FileText, Hammer, Package, ListChecks } from 'lucide-react'
+import { Phone, MessageCircle, Pencil, Check, Plus, FileText, Hammer, Package, ListChecks, ChevronDown, RotateCcw } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, soma } from '../hooks'
 import { brl, dataCurta, iniciais, diasAte, semanasDesde, semanasTotal, numero } from '../util'
@@ -71,13 +71,20 @@ export default function Obra() {
     await supabase.from('obra_itens').insert({ obra_id: id, descricao: t, concluido: false, ordem: itens.length })
     setNovoItem(''); recarregar()
   }
+  const mudarStatus = async (status) => {
+    if (status === o.status) return
+    try {
+      await supabase.from('obras').update({ status, data_conclusao: status === 'concluida' ? (o.data_conclusao || new Date().toISOString().slice(0, 10)) : null }).eq('id', id)
+      toast(`Status: ${STATUS_CHIP[status][1]}`); recarregar()
+    } catch { /* aviso já mostrado */ }
+  }
   const concluir = async () => { if (!confirm('Marcar esta obra como concluída?')) return; await supabase.from('obras').update({ status: 'concluida', data_conclusao: new Date().toISOString().slice(0, 10) }).eq('id', id); toast('Obra concluída'); recarregar() }
 
   return (
     <>
       <BackBar to="/obras" titulo="Obra" acao={<button className="btn sm" onClick={() => setEditar(true)}><Pencil size={15} className="i" />Editar</button>} />
       <div className="px mt16">
-        <div className="chips"><span className={`chip ${chipCls}`}>{chipTxt}</span>{o.area_casa && <span className="chip">{o.area_casa}</span>}{o.data_inicio && <span className="chip">{dataCurta(o.data_inicio)}{o.prazo_previsto ? ` a ${dataCurta(o.prazo_previsto)}` : ''}</span>}</div>
+        <div className="chips"><label className={`chip ${chipCls} status-pick`}>{chipTxt}<ChevronDown size={13} className="i" /><select value={o.status} onChange={e => mudarStatus(e.target.value)} aria-label="Mudar status">{Object.entries(STATUS_CHIP).map(([k, [, t]]) => <option key={k} value={k}>{t}</option>)}</select></label>{o.area_casa && <span className="chip">{o.area_casa}</span>}{o.data_inicio && <span className="chip">{dataCurta(o.data_inicio)}{o.prazo_previsto ? ` a ${dataCurta(o.prazo_previsto)}` : ''}</span>}</div>
         <h1 style={{ marginTop: 10 }}>{o.nome}</h1>
       </div>
 
@@ -177,7 +184,8 @@ export default function Obra() {
 
       <div className="px mt24 btnrow">
         <button className="btn dark" onClick={() => setPagar(true)}><Plus size={18} className="i" />Pagamento</button>
-        {o.status !== 'concluida' && <button className="btn primary" onClick={concluir}><Check size={18} className="i" />Concluir</button>}
+        {o.status !== 'concluida' ? <button className="btn primary" onClick={concluir}><Check size={18} className="i" />Concluir</button>
+          : <button className="btn soft" onClick={() => mudarStatus('em_andamento')}><RotateCcw size={18} className="i" />Reabrir obra</button>}
       </div>
       <div style={{ height: 12 }} />
 

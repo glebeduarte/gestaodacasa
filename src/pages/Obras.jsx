@@ -113,7 +113,7 @@ export function FolhaObra({ inicial = {}, itensIniciais = [], cats, pessoas, onF
     if (!f.nome || salvando) return
     setSalvando(true)
     try {
-    const payload = { nome: f.nome, area_casa: f.area_casa || null, categoria_id: f.categoria_id || null, empreiteiro_id: f.empreiteiro_id || null, status: f.status, data_inicio: f.data_inicio || null, prazo_previsto: f.prazo_previsto || null, orcamento_total: f.orcamento_total ? numero(f.orcamento_total) : null, combinado_verbal: f.combinado_verbal, descricao: f.descricao || null }
+    const payload = { nome: f.nome, area_casa: f.area_casa || null, categoria_id: f.categoria_id || null, empreiteiro_id: f.empreiteiro_id || null, status: f.status, data_conclusao: f.status === 'concluida' ? (f.data_conclusao || new Date().toISOString().slice(0, 10)) : null, data_inicio: f.data_inicio || null, prazo_previsto: f.prazo_previsto || null, orcamento_total: f.orcamento_total ? numero(f.orcamento_total) : null, combinado_verbal: f.combinado_verbal, descricao: f.descricao || null }
     let obraId = f.id
     if (obraId) await supabase.from('obras').update(payload).eq('id', obraId)
     else obraId = (await supabase.from('obras').insert(payload).select('id').single()).data?.id
@@ -131,6 +131,7 @@ export function FolhaObra({ inicial = {}, itensIniciais = [], cats, pessoas, onF
   return (
     <Sheet titulo={f.id ? 'Editar obra' : 'Nova obra'} onFechar={onFechar}>
       <div className="stack-y">
+        <label className="field"><span className="l">Status</span><select className="input" value={f.status} onChange={e => set('status', e.target.value)}>{[['orcamento_pendente', 'Orçamento pendente'], ['em_andamento', 'Em andamento'], ['pausada', 'Pausada'], ['concluida', 'Concluída'], ['cancelada', 'Cancelada']].map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>
         <label className="field"><span className="l">Nome da obra</span><input className="input" value={f.nome} onChange={e => set('nome', e.target.value)} placeholder="Ex.: deck da piscina" /></label>
         <div style={{ display: 'flex', gap: 10 }}>
           <label className="field" style={{ flex: 1 }}><span className="l">Área da casa</span><input className="input" value={f.area_casa} onChange={e => set('area_casa', e.target.value)} placeholder="piscina, quintal…" /></label>
@@ -143,7 +144,7 @@ export function FolhaObra({ inicial = {}, itensIniciais = [], cats, pessoas, onF
         </div>
         <label className="field"><span className="l">Orçamento total (R$)</span><input className="input" inputMode="decimal" value={f.orcamento_total} onChange={e => set('orcamento_total', e.target.value)} placeholder="Deixe vazio se ainda não tem" /></label>
         <label className="field" style={{ display: 'flex', alignItems: 'center', gap: 10, flexDirection: 'row' }}><input type="checkbox" checked={f.combinado_verbal} onChange={e => set('combinado_verbal', e.target.checked)} style={{ width: 20, height: 20 }} /><span style={{ fontSize: 14 }}>Combinado só verbalmente</span></label>
-        <label className="field"><span className="l">Status</span><select className="input" value={f.status} onChange={e => set('status', e.target.value)}>{[['orcamento_pendente', 'Orçamento pendente'], ['em_andamento', 'Em andamento'], ['pausada', 'Pausada'], ['concluida', 'Concluída'], ['cancelada', 'Cancelada']].map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>
+
         <label className="field"><span className="l">O que foi combinado</span><textarea className="input" value={f.descricao} onChange={e => set('descricao', e.target.value)} placeholder="Escopo, etapas de pagamento, quem fornece material" /></label>
         <div className="field"><span className="l">Checklist do que será feito</span>
           {itens.length > 0 && <div className="ck-edit">{itens.map((it, i) => (

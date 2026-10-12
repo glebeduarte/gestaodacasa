@@ -495,3 +495,5 @@ details.more .inner{padding:0 16px 16px}
 .tema.on span{box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--ink)}
 .tema small{font-size:11.5px;font-weight:700;color:var(--ink-2)}
 .tema:disabled{cursor:default;opacity:.7}
+.status-pick{position:relative;cursor:pointer;gap:4px}
+.status-pick select{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:16px}
