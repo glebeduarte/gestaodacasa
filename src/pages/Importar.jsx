@@ -4,7 +4,7 @@ import { FileUp, Sparkles, Check, TriangleAlert, ArrowDownLeft, RotateCcw, Credi
 import { supabase } from '../supabase'
 import { BackBar } from '../components/ui/BackBar'
 import { useToast } from '../components/ui/Toast'
-import { brl, dataCurta, numero } from '../util'
+import { brl, dataCurta, numero, mascaraReais, exibirReais } from '../util'
 import { TIPOS_CONTA, catPorNome, catPorTipo, arquivoBase64, pagarConta } from '../lib/contas'
 
 const TEXTO = /\.(csv|txt|ofx|qif)$/i
@@ -174,7 +174,7 @@ export default function Importar() {
                       {cats.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                       {Object.keys(criar).map(n => <option key={n} value={`novo:${n}`}>Nova: {n}</option>)}
                     </select>
-                    <input className="input" inputMode="decimal" value={l.valor} onChange={e => set(l.k, 'valor', e.target.value)} style={{ width: 110 }} />
+                    <input className="input" inputMode="numeric" value={exibirReais(l.valor)} onChange={e => set(l.k, 'valor', mascaraReais(e.target.value))} style={{ width: 110 }} />
                     <button type="button" className={`pick ${l.paga ? 'on' : ''}`} onClick={() => set(l.k, 'paga', !l.paga)}>{l.paga ? <><Check size={14} className="i" />Paga</> : 'Em aberto'}</button>
                   </div>
                 )}

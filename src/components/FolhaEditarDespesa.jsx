@@ -3,7 +3,7 @@ import { Trash2, Check } from 'lucide-react'
 import { supabase } from '../supabase'
 import { Sheet } from './ui/Sheet'
 import { useToast } from './ui/Toast'
-import { numero, brl } from '../util'
+import { numero, brl, mascaraReais, exibirReais } from '../util'
 import { excluirDespesa } from '../lib/crud'
 
 const FORMAS = ['Pix', 'Dinheiro', 'Cartão', 'Débito automático', 'Boleto', 'Transferência']
@@ -43,7 +43,7 @@ export function FolhaEditarDespesa({ despesa: d, onFechar, onSalvo }) {
       <div className="stack-y">
         <label className="field"><span className="l">Descrição</span><input className="input" value={f.descricao} onChange={e => set('descricao', e.target.value)} /></label>
         <div style={{ display: 'flex', gap: 10 }}>
-          <label className="field" style={{ flex: 1 }}><span className="l">Valor (R$)</span><input className="input" inputMode="decimal" value={f.valor} onChange={e => set('valor', e.target.value)} disabled={temItens} /></label>
+          <label className="field" style={{ flex: 1 }}><span className="l">Valor (R$)</span><input className="input" inputMode="numeric" value={exibirReais(f.valor)} onChange={e => set('valor', mascaraReais(e.target.value))} disabled={temItens} /></label>
           <label className="field" style={{ flex: 1 }}><span className="l">Data</span><input className="input" type="date" value={f.data} onChange={e => set('data', e.target.value)} /></label>
         </div>
         {temItens && <p className="muted">{d.adiantamento ? 'Este adiantamento já foi descontado em um pagamento, por isso o valor não pode mudar.' : 'Este pagamento tem itens (extras e abatimentos). Para mudar o valor, exclua e registre de novo na tela da pessoa.'}</p>}

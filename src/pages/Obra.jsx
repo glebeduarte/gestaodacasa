@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { Phone, MessageCircle, Pencil, Check, Plus, FileText, Hammer, Package, ListChecks, ChevronDown, RotateCcw } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, soma } from '../hooks'
-import { brl, dataCurta, iniciais, diasAte, semanasDesde, semanasTotal, numero } from '../util'
+import { brl, dataCurta, iniciais, diasAte, semanasDesde, semanasTotal, numero, mascaraReais, exibirReais } from '../util'
 import { BackBar } from '../components/ui/BackBar'
 import { FolhaDespesa } from '../components/FolhaDespesa'
 import { FolhaObra } from './Obras'
@@ -217,7 +217,7 @@ function FolhaOrcamento({ inicial = {}, obra_id, pessoas, onFechar, onSalvo }) {
         <label className="field"><span className="l">Fornecedor</span><input className="input" value={f.fornecedor} onChange={e => set('fornecedor', e.target.value)} placeholder="Nome de quem orçou" /></label>
         <label className="field"><span className="l">Ou pessoa cadastrada</span><select className="input" value={f.pessoa_id} onChange={e => set('pessoa_id', e.target.value)}><option value="">Nenhuma</option>{(pessoas || []).map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></label>
         <div style={{ display: 'flex', gap: 10 }}>
-          <label className="field" style={{ flex: 1 }}><span className="l">Valor (R$)</span><input className="input" inputMode="decimal" value={f.valor} onChange={e => set('valor', e.target.value)} /></label>
+          <label className="field" style={{ flex: 1 }}><span className="l">Valor (R$)</span><input className="input" inputMode="numeric" value={exibirReais(f.valor)} onChange={e => set('valor', mascaraReais(e.target.value))} /></label>
           <label className="field" style={{ flex: 1 }}><span className="l">Validade</span><input className="input" type="date" value={f.validade} onChange={e => set('validade', e.target.value)} /></label>
         </div>
         <label className="field"><span className="l">Observações</span><textarea className="input" value={f.observacoes} onChange={e => set('observacoes', e.target.value)} /></label>

@@ -4,7 +4,7 @@ import { supabase } from '../supabase'
 import { Sheet } from './ui/Sheet'
 import { useToast } from './ui/Toast'
 import { enviarFotos } from './Upload'
-import { brl, hoje, dataCurta } from '../util'
+import { brl, hoje, dataCurta, mascaraReais, exibirReais } from '../util'
 import { excluirDespesa } from '../lib/crud'
 import { FolhaEditarDespesa } from './FolhaEditarDespesa'
 import { Pencil, HandCoins, Check } from 'lucide-react'
@@ -76,7 +76,7 @@ export function FolhaPagamento({ pessoa, onFechar, onSalvo }) {
               <div className="pg-top"><span className={`chip ${TIPO_ITEM[it.tipo].cls}`}>{TIPO_ITEM[it.tipo].txt}</span>
                 {itens.length > 1 && <button type="button" className="iconbtn" onClick={() => setItens(x => x.filter((_, j) => j !== i))} aria-label="Remover"><X size={16} className="i" /></button>}</div>
               <input className="input" value={it.descricao} onChange={e => editar(i, 'descricao', e.target.value)} placeholder={it.tipo === 'base' ? 'Ex.: diárias da semana' : it.tipo === 'extra' ? 'Ex.: limpeza pós-obra' : 'Ex.: adiantamento do dia 05'} />
-              <label className="money sm"><span>{it.tipo === 'abatimento' ? '− R$' : 'R$'}</span><input inputMode="decimal" placeholder="0,00" value={it.valor} onChange={e => editar(i, 'valor', e.target.value)} /></label>
+              <label className="money sm"><span>{it.tipo === 'abatimento' ? '− R$' : 'R$'}</span><input inputMode="numeric" placeholder="0,00" value={exibirReais(it.valor, false)} onChange={e => editar(i, 'valor', mascaraReais(e.target.value, false))} /></label>
             </div>))}</div>
           <div className="btnrow mt8">
             <button type="button" className="btn sm" onClick={() => add('base')}><Plus size={15} className="i" />Item</button>
@@ -172,7 +172,7 @@ export function FolhaAdiantamento({ pessoa, onFechar, onSalvo }) {
     <Sheet titulo={`Adiantamento para ${pessoa.nome.split(' ')[0]}`} onFechar={onFechar}>
       <div className="stack-y">
         <p className="muted">O valor entra no gasto de hoje e fica em aberto. No próximo pagamento ele aparece para ser descontado.</p>
-        <label className="money"><span>R$</span><input inputMode="decimal" placeholder="0,00" value={f.valor} onChange={e => set('valor', e.target.value)} autoFocus /></label>
+        <label className="money"><span>R$</span><input inputMode="numeric" placeholder="0,00" value={exibirReais(f.valor, false)} onChange={e => set('valor', mascaraReais(e.target.value, false))} autoFocus /></label>
         <div style={{ display: 'flex', gap: 10 }}>
           <label className="field" style={{ flex: 1 }}><span className="l">Data</span><input className="input" type="date" value={f.data} onChange={e => set('data', e.target.value)} /></label>
           <label className="field" style={{ flex: 1 }}><span className="l">Forma</span><select className="input" value={f.forma_pagamento} onChange={e => set('forma_pagamento', e.target.value)}>{[...new Set([f.forma_pagamento, ...PAGAMENTOS])].map(p => <option key={p}>{p}</option>)}</select></label>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Plus, Phone, MessageCircle } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, q, soma } from '../hooks'
-import { brl, dataCurta, iniciais, hoje, mesAtual, UNIDADE, numero } from '../util'
+import { brl, dataCurta, iniciais, hoje, mesAtual, UNIDADE, numero, mascaraReais, exibirReais } from '../util'
 import { catStyle } from '../lib/categoryStyle'
 import { BackBar } from '../components/ui/BackBar'
 import { Sheet } from '../components/ui/Sheet'
@@ -145,7 +145,7 @@ export function FolhaPessoa({ inicial = {}, cats, onFechar, onSalvo }) {
         </div>
         <label className="field"><span className="l">Categoria</span><select className="input" value={f.categoria_id} onChange={e => set('categoria_id', e.target.value)}><option value="">Nenhuma</option>{(cats || []).map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
         <div style={{ display: 'flex', gap: 10 }}>
-          <label className="field" style={{ flex: 1 }}><span className="l">Valor de referência (opcional)</span><input className="input" inputMode="decimal" value={f.valor_combinado} onChange={e => set('valor_combinado', e.target.value)} /></label>
+          <label className="field" style={{ flex: 1 }}><span className="l">Valor de referência (opcional)</span><input className="input" inputMode="numeric" value={exibirReais(f.valor_combinado)} onChange={e => set('valor_combinado', mascaraReais(e.target.value))} /></label>
           <label className="field" style={{ flex: 1 }}><span className="l">Unidade</span><select className="input" value={f.unidade_valor} onChange={e => set('unidade_valor', e.target.value)}>{Object.entries(UNIDADE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
         </div>
         <div className="field"><span className="l">Tipo de pagamento</span>

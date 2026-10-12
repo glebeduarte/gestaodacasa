@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Hammer, Plus, Lightbulb, X, ListChecks } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, q, soma } from '../hooks'
-import { brl, brlCurto, dataCurta, semanasDesde, semanasTotal, numero } from '../util'
+import { brl, brlCurto, dataCurta, semanasDesde, semanasTotal, numero, mascaraReais, exibirReais } from '../util'
 import { CatTile } from '../lib/categoryStyle'
 import { Sheet } from '../components/ui/Sheet'
 
@@ -145,7 +145,7 @@ export function FolhaObra({ inicial = {}, itensIniciais = [], cats, pessoas, onF
           <label className="field" style={{ flex: 1 }}><span className="l">Início</span><input className="input" type="date" value={f.data_inicio} onChange={e => set('data_inicio', e.target.value)} /></label>
           <label className="field" style={{ flex: 1 }}><span className="l">Prazo</span><input className="input" type="date" value={f.prazo_previsto} onChange={e => set('prazo_previsto', e.target.value)} /></label>
         </div>
-        <label className="field"><span className="l">Orçamento total (R$)</span><input className="input" inputMode="decimal" value={f.orcamento_total} onChange={e => set('orcamento_total', e.target.value)} placeholder="Deixe vazio se ainda não tem" /></label>
+        <label className="field"><span className="l">Orçamento total (R$)</span><input className="input" inputMode="numeric" value={exibirReais(f.orcamento_total)} onChange={e => set('orcamento_total', mascaraReais(e.target.value))} placeholder="Deixe vazio se ainda não tem" /></label>
         <label className="field" style={{ display: 'flex', alignItems: 'center', gap: 10, flexDirection: 'row' }}><input type="checkbox" checked={f.combinado_verbal} onChange={e => set('combinado_verbal', e.target.checked)} style={{ width: 20, height: 20 }} /><span style={{ fontSize: 14 }}>Combinado só verbalmente</span></label>
 
         <label className="field"><span className="l">O que foi combinado</span><textarea className="input" value={f.descricao} onChange={e => set('descricao', e.target.value)} placeholder="Escopo, etapas de pagamento, quem fornece material" /></label>

@@ -4,7 +4,7 @@ import { supabase } from '../supabase'
 import { Sheet } from './ui/Sheet'
 import { useToast } from './ui/Toast'
 import { CatTile } from '../lib/categoryStyle'
-import { brl, hoje, dataCurta } from '../util'
+import { brl, hoje, dataCurta, mascaraReais, exibirReais } from '../util'
 import { TIPOS_CONTA, STATUS_CONTA, statusConta, prazoTexto, catPorTipo, catPorNome, lerContaIA, guardarArquivo, pagarConta, desfazerPagamento } from '../lib/contas'
 import { abrirDocumento } from '../pages/Documentos'
 
@@ -238,7 +238,7 @@ export function FolhaConta({ inicial, onFechar, onSalvo }) {
             <label className="field" style={{ flex: 1.3 }}><span className="l">Nome da conta</span><input className="input" value={f.descricao} onChange={e => set('descricao', e.target.value)} placeholder="Ex.: Luz outubro" /></label>
             <label className="field" style={{ flex: 1 }}><span className="l">Fornecedor</span><input className="input" value={f.fornecedor} onChange={e => set('fornecedor', e.target.value)} placeholder="Cosern, CAERN…" /></label>
           </div>
-          <label className="money"><span>R$</span><input inputMode="decimal" placeholder="0,00" aria-label="Valor" value={f.valor} onChange={e => set('valor', e.target.value)} /></label>
+          <label className="money"><span>R$</span><input inputMode="numeric" placeholder="0,00" aria-label="Valor" value={exibirReais(f.valor, false)} onChange={e => set('valor', mascaraReais(e.target.value, false))} /></label>
           <div style={{ display: 'flex', gap: 10 }}>
             <label className="field" style={{ flex: 1 }}><span className="l">Vencimento</span><input className="input" type="date" value={f.vencimento} onChange={e => set('vencimento', e.target.value)} /></label>
             <label className="field" style={{ flex: 1 }}><span className="l">Mês de referência</span><input className="input" type="month" value={f.referencia} onChange={e => set('referencia', e.target.value)} /></label>

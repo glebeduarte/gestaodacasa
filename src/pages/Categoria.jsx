@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { Plus, Check } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, soma } from '../hooks'
-import { brl, dataCurta, hoje, mesAtual, variacao, numero } from '../util'
+import { brl, dataCurta, hoje, mesAtual, variacao, numero, mascaraReais, exibirReais } from '../util'
 import { CatTile } from '../lib/categoryStyle'
 import { BackBar } from '../components/ui/BackBar'
 import { FolhaDespesa } from '../components/FolhaDespesa'
@@ -147,7 +147,7 @@ export function FolhaFixo({ inicial = {}, categoria_id, pessoas, cats, onFechar,
       <div className="stack-y">
         <label className="field"><span className="l">Descrição</span><input className="input" value={f.descricao} onChange={e => set('descricao', e.target.value)} placeholder="Ex.: conta de luz, limpeza semanal" /></label>
         <div style={{ display: 'flex', gap: 10 }}>
-          <label className="field" style={{ flex: 1 }}><span className="l">Valor (R$)</span><input className="input" inputMode="decimal" value={f.valor} onChange={e => set('valor', e.target.value)} /></label>
+          <label className="field" style={{ flex: 1 }}><span className="l">Valor (R$)</span><input className="input" inputMode="numeric" value={exibirReais(f.valor)} onChange={e => set('valor', mascaraReais(e.target.value))} /></label>
           <label className="field" style={{ flex: 1 }}><span className="l">Dia do venc.</span><input className="input" inputMode="numeric" value={f.dia_vencimento} onChange={e => set('dia_vencimento', e.target.value)} placeholder="1 a 31" /></label>
         </div>
         <div className="field"><span className="l">Recorrência</span><div className="chips">{['semanal', 'quinzenal', 'mensal', 'anual'].map(v => <button key={v} type="button" className={`pick ${f.recorrencia === v ? 'on' : ''}`} onClick={() => set('recorrencia', v)}>{v}</button>)}</div></div>

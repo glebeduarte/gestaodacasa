@@ -65,3 +65,17 @@ export const numero = (v) => {
 
 // Nome de exibição: o que a pessoa definiu em Ajustes, ou o início do e-mail
 export const nomeUsuario = (user) => (user?.user_metadata?.nome || '').trim() || primeiroNome(user?.email)
+
+// Máscara de reais: digita só números, os dois últimos viram centavos ("15000" → "R$ 150,00")
+const fmtReais = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+export const mascaraReais = (txt, prefixo = true) => {
+  const d = String(txt ?? '').replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+  if (!d || /^0+$/.test(d)) return ''
+  return (prefixo ? 'R$ ' : '') + fmtReais(Number(d) / 100)
+}
+// Mostra um valor já salvo (número ou texto) no formato da máscara
+export const exibirReais = (v, prefixo = true) => {
+  if (v === '' || v === null || v === undefined) return ''
+  const n = numero(v)
+  return n === null ? '' : (prefixo ? 'R$ ' : '') + fmtReais(n)
+}

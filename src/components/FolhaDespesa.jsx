@@ -4,7 +4,7 @@ import { X, Check, Calendar, ChevronDown, Camera, Plus } from 'lucide-react'
 import { catStyle } from '../lib/categoryStyle'
 import { enviarFotos } from './Upload'
 import { useToast } from './ui/Toast'
-import { hoje, numero } from '../util'
+import { hoje, numero, mascaraReais, exibirReais } from '../util'
 import { useCasa } from '../lib/casa'
 
 const TIPOS = [
@@ -109,7 +109,7 @@ export function FolhaDespesa({ onFechar, onSalvo, inicial = {} }) {
         )}
 
         <div className="px mt24"><div className="step"><b>{f.tipo === 'variavel' ? '2' : '4'}</b>Quanto foi?</div>
-          <label className="money"><span>R$</span><input inputMode="decimal" placeholder="0,00" aria-label="Valor" value={f.valor} onChange={e => set('valor', e.target.value)} /></label></div>
+          <label className="money"><span>R$</span><input inputMode="numeric" placeholder="0,00" aria-label="Valor" value={exibirReais(f.valor, false)} onChange={e => set('valor', mascaraReais(e.target.value, false))} /></label></div>
 
         {f.tipo === 'variavel' ? (
           <div className="px mt24"><div className="step"><b>3</b>Em qual categoria?</div>
