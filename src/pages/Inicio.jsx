@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { ChevronRight, TriangleAlert, Wrench } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, q, soma } from '../hooks'
-import { brl, mesAtual, semanasDesde, dataExtenso, saudacao, primeiroNome, iniciais, dataCurta } from '../util'
+import { brl, mesAtual, semanasDesde, dataExtenso, saudacao, nomeUsuario, iniciais, dataCurta } from '../util'
 import { CatTile } from '../lib/categoryStyle'
 import { Meander } from '../components/ui/Meander'
 import { useToast } from '../components/ui/Toast'
@@ -67,8 +67,8 @@ export default function Inicio({ sessao }) {
   return (
     <>
       <header className="hdr">
-        <div><p className="eyebrow">{dataExtenso()}</p><h1>{saudacao()}{email ? `, ${primeiroNome(email)}` : ''}</h1></div>
-        <span className="avatar">{iniciais(primeiroNome(email))}</span>
+        <div><p className="eyebrow">{dataExtenso()}</p><h1>{saudacao()}{email ? `, ${nomeUsuario(sessao.user)}` : ''}</h1></div>
+        <span className="avatar">{iniciais(nomeUsuario(sessao?.user))}</span>
       </header>
 
       <section className="px">

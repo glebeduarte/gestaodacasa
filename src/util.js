@@ -62,3 +62,6 @@ export const numero = (v) => {
   const n = Number(s.includes(',') ? s.replace(/\./g, '').replace(',', '.') : s)
   return isNaN(n) ? null : n
 }
+
+// Nome de exibição: o que a pessoa definiu em Ajustes, ou o início do e-mail
+export const nomeUsuario = (user) => (user?.user_metadata?.nome || '').trim() || primeiroNome(user?.email)

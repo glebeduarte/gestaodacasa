@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ArrowUp, ArrowDown, Pencil, Plus, LogOut, Check } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, q, soma } from '../hooks'
-import { brl } from '../util'
+import { brl, nomeUsuario } from '../util'
 import { catStyle, CatTile, ICONES, CORES } from '../lib/categoryStyle'
 import { FolhaPessoa, corAvatar } from './Pessoas'
 import { FolhaObra } from './Obras'
@@ -23,6 +23,12 @@ export default function Admin({ sessao }) {
   const [editObra, setEditObra] = useState(null)
   const [editFixo, setEditFixo] = useState(null)
   const toast = useToast()
+  const [meuNome, setMeuNome] = useState(nomeUsuario(sessao?.user))
+  const salvarNome = async () => {
+    const nome = meuNome.trim(); if (!nome) return
+    const { error } = await supabase.auth.updateUser({ data: { nome } })
+    toast(error ? { txt: `Não foi salvo: ${error.message}`, erro: true } : 'Nome atualizado')
+  }
 
   const { dados, recarregar } = useDados(async () => {
     const [categorias, pessoas, obras, fixos] = await Promise.all([
@@ -102,6 +108,13 @@ export default function Admin({ sessao }) {
           <button className="btn soft block mt16" onClick={() => setNovaObra(true)}><Plus size={18} className="i" />Nova obra</button>
         </section>
       )}
+
+      <section className="sec"><div className="sec-h"><h2>Seu nome</h2></div>
+        <div className="px"><div className="card">
+          <p className="muted" style={{ marginBottom: 8 }}>É como o app chama você no início ({sessao?.user?.email}).</p>
+          <div style={{ display: 'flex', gap: 8 }}><input className="input" style={{ flex: 1 }} value={meuNome} onChange={e => setMeuNome(e.target.value)} onKeyDown={e => e.key === 'Enter' && salvarNome()} placeholder="Seu nome" /><button className="btn primary" onClick={salvarNome}><Check size={18} className="i" />Salvar</button></div>
+        </div></div>
+      </section>
 
       <section className="sec"><div className="sec-h"><h2>Quem usa</h2></div>
         <div className="px"><div className="list">

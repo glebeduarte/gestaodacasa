@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 're
 import { supabase } from './supabase'
 import { Home, LayoutGrid, Plus, Hammer, Menu, Users, Wrench, FileText, Package, BarChart3, Settings, LogOut, History, Receipt } from 'lucide-react'
 import { q } from './hooks'
-import { primeiroNome, iniciais } from './util'
+import { nomeUsuario, iniciais } from './util'
 import { ToastProvider } from './components/ui/Toast'
 import { FolhaDespesa } from './components/FolhaDespesa'
 import Login from './pages/Login'
@@ -62,7 +62,7 @@ function Layout({ children, sessao }) {
   useEffect(() => { q.pendencias().then(setPend); setMais(false) }, [loc.pathname])
   const naMais = MAIS.some(m => loc.pathname.startsWith(m.to))
   const email = sessao?.user?.email
-  const nome = primeiroNome(email)
+  const nome = nomeUsuario(sessao?.user)
 
   return (
     <div className="app">
@@ -152,7 +152,7 @@ export default function App() {
             <Route path="/estoque" element={<Estoque />} />
             <Route path="/contas" element={<Contas />} />
             <Route path="/fechamento" element={<Fechamento />} />
-            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin" element={<Admin sessao={sessao} />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </Layout>
