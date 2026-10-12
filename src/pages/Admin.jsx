@@ -11,7 +11,7 @@ import { excluirOuArquivar } from '../lib/crud'
 import { Sheet } from '../components/ui/Sheet'
 import { useToast } from '../components/ui/Toast'
 
-const ABAS = [['categorias', 'Categorias'], ['fixos', 'Custos fixos'], ['pessoas', 'Pessoas'], ['obras', 'Obras']]
+const ABAS = [['categorias', 'Categorias'], ['pessoas', 'Pessoas'], ['obras', 'Obras']]
 const ICON_LISTA = ['Zap', 'Droplet', 'Waves', 'Leaf', 'BrickWall', 'Sparkles', 'PawPrint', 'Wifi', 'Home', 'Wrench', 'ShieldCheck', 'Flame', 'Trash2', 'Car', 'Utensils', 'Tv', 'Bug', 'Hammer']
 
 export default function Admin({ sessao }) {

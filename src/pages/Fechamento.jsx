@@ -28,14 +28,14 @@ export default function Fechamento() {
   const total = soma(despesas)
   const totalAnt = soma(anteriores)
   const dif = totalAnt ? Math.round((total - totalAnt) / totalAnt * 100) : null
-  const fixos = soma(despesas.filter(d => d.tipo === 'fixo' || d.custo_fixo_id))
+  const fixos = soma(despesas.filter(d => !d.obra_id && !d.pessoa_id))
   const obras = soma(despesas.filter(d => d.obra_id))
   const pessoas = soma(despesas.filter(d => d.pessoa_id && !d.obra_id))
   const porCat = categorias.map(c => ({ ...c, total: soma(despesas.filter(d => d.categoria_id === c.id)) })).filter(c => c.total > 0).sort((a, b) => b.total - a.total)
   const max = Math.max(1, ...porCat.map(c => c.total))
 
   const enviar = () => {
-    const txt = `*Fechamento ${label}*\n\nTotal: ${brl(total)}\nFixos: ${brl(fixos)}\nObras: ${brl(obras)}\nPessoas: ${brl(pessoas)}\n\n` + porCat.map(c => `${c.nome}: ${brl(c.total)}`).join('\n')
+    const txt = `*Fechamento ${label}*\n\nTotal: ${brl(total)}\nContas: ${brl(fixos)}\nObras: ${brl(obras)}\nPessoas: ${brl(pessoas)}\n\n` + porCat.map(c => `${c.nome}: ${brl(c.total)}`).join('\n')
     window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank')
   }
 
@@ -55,7 +55,7 @@ export default function Fechamento() {
       </section>
 
       <div className="px stats mt16">
-        <div className="stat"><p className="l">Fixos</p><p className="v num">{brl(fixos)}</p></div>
+        <div className="stat"><p className="l">Contas</p><p className="v num">{brl(fixos)}</p></div>
         <div className="stat"><p className="l">Obras</p><p className="v num">{brl(obras)}</p></div>
         <div className="stat"><p className="l">Pessoas</p><p className="v num">{brl(pessoas)}</p></div>
       </div>

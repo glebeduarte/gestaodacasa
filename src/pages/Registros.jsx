@@ -15,8 +15,8 @@ export default function Registros() {
   })
   if (!dados) return <p className="carregando">Carregando…</p>
   const { despesas } = dados
-  const filtros = [['todos', 'Tudo'], ['fixo', 'Fixos'], ['pessoa', 'Pessoas'], ['obra', 'Obras'], ['material', 'Material'], ['variavel', 'Avulsos']]
-  let lista = filtro === 'todos' ? despesas : despesas.filter(d => d.tipo === filtro || (filtro === 'fixo' && d.custo_fixo_id))
+  const filtros = [['todos', 'Tudo'], ['contas', 'Contas'], ['pessoa', 'Pessoas'], ['obra', 'Obras'], ['material', 'Material']]
+  let lista = filtro === 'todos' ? despesas : despesas.filter(d => filtro === 'contas' ? ['fixo', 'variavel'].includes(d.tipo) : d.tipo === filtro)
 
   // agrupar por dia
   const grupos = {}

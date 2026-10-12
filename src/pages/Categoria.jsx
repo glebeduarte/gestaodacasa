@@ -41,6 +41,8 @@ export default function Categoria() {
   const acoesConta = useAcoesConta(recarregar)
   if (!dados) return <p className="carregando">Carregando…</p>
   const { c, fixos, pessoas, despesas, docs, contas } = dados
+  const ligadas = new Set(contas.map(x => x.despesa_id).filter(Boolean))
+  const soltos = despesas.filter(d => !ligadas.has(d.id) && d.data >= mesAtual().ini)
   const { ini, fim } = mesAtual()
   const doMes = despesas.filter(d => d.data >= ini && d.data <= fim)
   const totalMes = soma(doMes)
@@ -86,45 +88,20 @@ export default function Categoria() {
 
       <div className="sec-h mt24"><h2>Contas</h2><button className="link" onClick={() => acoesConta.abrirNova({ categoria_id: id })}>+ Adicionar</button></div>
       <div className="px stack-y">
-        {contas.length === 0 ? <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nenhuma conta nesta categoria ainda.</p></div>
-          : contas.map(ct => <ContaLinha key={ct.id} c={ct} onAbrir={acoesConta.abrir} onPagar={acoesConta.pagar} />)}
-      </div>
-
-      <div className="sec-h mt24"><h2>Custos fixos</h2><button className="link" onClick={() => setFixoAberto(true)}>+ Adicionar</button></div>
-      <div className="px stack-y">
-        {fixos.length === 0 && <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nenhum custo fixo aqui. Toque em adicionar para cadastrar contas ou pagamentos recorrentes.</p></div>}
-        {fixos.map(f => {
-          const pago = doMes.find(d => d.custo_fixo_id === f.id)
-          return (
-            <div key={f.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div><p style={{ fontWeight: 700, fontSize: 14.5 }}>{f.pessoas?.nome ? `${f.pessoas.nome} · ` : ''}{f.descricao}</p>
-                  <p className="muted">{f.recorrencia}{f.dia_vencimento ? ` · vence dia ${f.dia_vencimento}` : ''}{f.debito_automatico ? ' · débito automático' : ''}</p></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><b className="num" style={{ fontSize: 15 }}>{brl(f.valor)}</b><button className="iconbtn" style={{ width: 34, height: 34 }} onClick={() => setFixoAberto(f)} aria-label="Editar"><Pencil size={15} className="i" /></button></div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid var(--line)' }}>
-                {pago ? <span className="chip ok"><Check size={13} className="i" />Pago em {dataCurta(pago.data)}</span> : <span className="chip warn">Ainda não pago</span>}
-                {!pago && <div style={{ display: 'flex', gap: 6 }}><button className="btn sm ghost" onClick={() => setDespesaAberta({ tipo: f.pessoa_id ? 'pessoa' : 'fixo', categoria_id: id, pessoa_id: f.pessoa_id || '', custo_fixo_id: f.id, descricao: f.descricao, valor: f.valor, forma_pagamento: f.debito_automatico ? 'Débito automático' : 'Pix' })}>Outro valor</button><button className="btn sm dark" onClick={() => pagar(f)}>Pagar</button></div>}
-              </div>
+        {contas.length === 0 && soltos.length === 0 && <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nenhuma conta nesta categoria ainda.</p></div>}
+        {contas.map(ct => <ContaLinha key={ct.id} c={ct} onAbrir={acoesConta.abrir} onPagar={acoesConta.pagar} />)}
+        {soltos.map(d => (
+          <button key={d.id} type="button" className="conta-row st-paga" onClick={() => setEditDespesa(d)} style={{ textAlign: 'left' }}>
+            <div className="conta-main" style={{ cursor: 'pointer' }}>
+              <CatTile cat={c} size="md" />
+              <div className="grow"><p className="t">{d.descricao}</p><p className="s">paga em {dataCurta(d.data)}{d.forma_pagamento ? ` · ${d.forma_pagamento}` : ''}{d.pessoas?.nome ? ` · ${d.pessoas.nome}` : ''}{d.consumo ? ` · ${Number(d.consumo)} ${d.unidade_consumo}` : ''}</p></div>
+              <b className="num">{brl(d.valor)}</b>
             </div>
-          )
-        })}
-      </div>
-
-      <div className="sec-h mt24"><h2>Gastos avulsos</h2><span className="muted">{doMes.filter(d => !d.custo_fixo_id).length}</span></div>
-      <div className="px stack-y">
-        {doMes.filter(d => !d.custo_fixo_id).length === 0 && <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nenhum gasto avulso neste mês.</p></div>}
-        {doMes.filter(d => !d.custo_fixo_id).map(d => (
-          <div key={d.id} className="card" onClick={() => setEditDespesa(d)} style={{ cursor: 'pointer' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}><p style={{ fontWeight: 700, fontSize: 14.5 }}>{d.descricao}</p><b className="num" style={{ fontSize: 14.5 }}>{brl(d.valor)}</b></div>
-            {d.explicacao && <p className="sub" style={{ marginTop: 4 }}>{d.explicacao}</p>}
-            <p className="muted" style={{ marginTop: 4 }}>{dataCurta(d.data)}{d.consumo ? ` · ${Number(d.consumo)} ${d.unidade_consumo}` : ''}{d.forma_pagamento ? ` · ${d.forma_pagamento}` : ''}{d.pessoas?.nome ? ` · ${d.pessoas.nome}` : ''}</p>
-            {d.fotos?.length > 0 && <div className="fotos" onClick={e => e.stopPropagation()}>{d.fotos.map(u => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="" /></a>)}</div>}
-          </div>
+          </button>
         ))}
       </div>
 
-      <div className="px mt16"><button className="btn soft block" onClick={() => setDespesaAberta({ categoria_id: id })}><Plus size={18} className="i" />Gasto em {c.nome}</button></div>
+      <div className="px mt16"><button className="btn soft block" onClick={() => acoesConta.abrirNova({ categoria_id: id })}><Plus size={18} className="i" />Conta em {c.nome}</button></div>
 
       {docs.length > 0 && (<>
         <div className="sec-h mt24"><h2>Documentos</h2></div>

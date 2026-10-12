@@ -68,7 +68,6 @@ export default function Categorias() {
       <div className="hscroll mt16">
         <button className={`pick ${ordem === 'gasto' ? 'on' : ''}`} onClick={() => setOrdem('gasto')}>Maior gasto</button>
         <button className={`pick ${ordem === 'az' ? 'on' : ''}`} onClick={() => setOrdem('az')}>A a Z</button>
-        <button className={`pick ${ordem === 'fixos' ? 'on' : ''}`} onClick={() => setOrdem('fixos')}>Só fixos</button>
       </div>
 
       <section className="px mt16">
@@ -76,7 +75,7 @@ export default function Categorias() {
           {visiveis.map(l => (
             <Link key={l.id} className="row" to={`/categorias/${l.id}`}>
               <CatTile cat={l} size="md" />
-              <div className="grow"><p className="t">{l.nome}</p><p className="s">{l.fixo > 0 ? `Fixo ${brl(l.fixo)}${l.avulso > 0 ? ` + avulsos ${brl(l.avulso)}` : ''}` : l.gasto > 0 ? 'Só avulsos' : 'Sem gasto'}</p></div>
+              <div className="grow"><p className="t">{l.nome}</p><p className="s">{l.gasto > 0 ? 'Contas do mês' : 'Sem gasto'}</p></div>
               <div className="r"><div className="v num">{brl(l.gasto)}</div>
                 {l.varia !== null && (Math.abs(l.varia) < 3
                   ? <span className="chip" style={{ height: 20, fontSize: 11 }}><Minus size={12} className="i" />igual</span>

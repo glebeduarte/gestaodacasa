@@ -36,10 +36,10 @@ export default function Inicio({ sessao }) {
   const cLista = [...cAtras, ...cVencer].slice(0, 5)
 
   const total = soma(despesas)
-  const totalFixos = soma(despesas.filter(d => d.tipo === 'fixo' || d.custo_fixo_id))
+  const totalFixos = soma(despesas.filter(d => !d.obra_id && !(d.pessoa_id && !d.obra_id)))
   const totalObras = soma(despesas.filter(d => d.obra_id))
   const totalPessoas = soma(despesas.filter(d => d.pessoa_id && !d.obra_id))
-  const previstoBase = soma(fixos) || total
+  const previstoBase = total
   const cabe = Math.max(0, previstoBase - total)
   const ativas = obras.filter(o => ['orcamento_pendente', 'em_andamento', 'pausada'].includes(o.status))
 
@@ -76,14 +76,14 @@ export default function Inicio({ sessao }) {
           <div className="hero-top"><span className="eyebrow">{mes.label} · casa</span><span className="hero-link">Ver resumo <ChevronRight size={16} className="i" /></span></div>
           <p className="hero-label">Gasto até agora</p>
           <p className="hero-value num">{brl(total)}</p>
-          <p className="hero-sub">{previstoBase > total ? <>de {brl(previstoBase)} previstos · ainda cabem <b>{brl(cabe)}</b></> : 'somando fixos, obras e pessoas'}</p>
+          <p className="hero-sub">{previstoBase > total ? <>de {brl(previstoBase)} previstos · ainda cabem <b>{brl(cabe)}</b></> : 'somando contas, obras e pessoas'}</p>
           <div className="sbar">
             <i style={{ width: `${totalFixos / pMax * 100}%`, background: '#fff' }} />
             <i style={{ width: `${totalObras / pMax * 100}%`, background: '#FFC766' }} />
             <i style={{ width: `${totalPessoas / pMax * 100}%`, background: '#8EE3EF' }} />
           </div>
           <div className="legend">
-            <div><span className="dot" style={{ background: '#fff' }} />Fixos<b className="num">{brl(totalFixos)}</b></div>
+            <div><span className="dot" style={{ background: '#fff' }} />Contas<b className="num">{brl(totalFixos)}</b></div>
             <div><span className="dot" style={{ background: '#FFC766' }} />Obras<b className="num">{brl(totalObras)}</b></div>
             <div><span className="dot" style={{ background: '#8EE3EF' }} />Pessoas<b className="num">{brl(totalPessoas)}</b></div>
           </div>

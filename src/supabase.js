@@ -5,11 +5,16 @@ const cliente = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 )
 
+const CAMPOS = { categoria_id: 'categoria', descricao: 'descrição', valor: 'valor', nome: 'nome', funcao: 'função', vencimento: 'vencimento', data: 'data', despesa_id: 'pagamento', pessoa_id: 'pessoa', obra_id: 'obra' }
+
 // Traduz erros comuns do banco para algo legível
 export function mensagemErro(e) {
   const m = e?.message || String(e)
   if (e?.code === '23503' || /foreign key/i.test(m)) return 'Este item está ligado a outros registros e não pode ser excluído assim.'
-  if (e?.code === '23502' || /null value/i.test(m)) return 'Faltou preencher um campo obrigatório.'
+  if (e?.code === '23502' || /null value/i.test(m)) {
+    const col = (m.match(/column "([^"]+)"/) || [])[1]
+    return `Faltou preencher: ${CAMPOS[col] || col || 'um campo obrigatório'}.`
+  }
   if (e?.code === '22P02' || /invalid input syntax/i.test(m)) return 'Algum valor está em formato inválido (confira números e datas).'
   if (/JWT|auth/i.test(m)) return 'Sua sessão expirou. Saia e entre de novo.'
   return m

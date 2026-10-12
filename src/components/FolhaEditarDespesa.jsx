@@ -7,7 +7,7 @@ import { numero, brl } from '../util'
 import { excluirDespesa } from '../lib/crud'
 
 const FORMAS = ['Pix', 'Dinheiro', 'Cartão', 'Débito automático', 'Boleto', 'Transferência']
-const TIPOS = [['variavel', 'Conta/avulso'], ['fixo', 'Custo fixo'], ['pessoa', 'Pessoa'], ['obra', 'Obra'], ['material', 'Material']]
+const TIPOS = [['variavel', 'Conta'], ['pessoa', 'Pessoa'], ['obra', 'Obra'], ['material', 'Material']]
 
 // Editar ou excluir qualquer gasto já registrado
 export function FolhaEditarDespesa({ despesa: d, onFechar, onSalvo }) {
@@ -16,7 +16,7 @@ export function FolhaEditarDespesa({ despesa: d, onFechar, onSalvo }) {
   const [pessoas, setPessoas] = useState([])
   const [obras, setObras] = useState([])
   const temItens = (d.pagamento_itens || []).length > 1 || (d.adiantamento && Number(d.descontado) > 0)
-  const [f, setF] = useState({ descricao: d.descricao || '', valor: String(d.valor ?? '').replace('.', ','), data: d.data, categoria_id: d.categoria_id || '', pessoa_id: d.pessoa_id || '', obra_id: d.obra_id || '', tipo: d.tipo || 'variavel', forma_pagamento: d.forma_pagamento || 'Pix', explicacao: d.explicacao || '' })
+  const [f, setF] = useState({ descricao: d.descricao || '', valor: String(d.valor ?? '').replace('.', ','), data: d.data, categoria_id: d.categoria_id || '', pessoa_id: d.pessoa_id || '', obra_id: d.obra_id || '', tipo: d.tipo === 'fixo' ? 'variavel' : (d.tipo || 'variavel'), forma_pagamento: d.forma_pagamento || 'Pix', explicacao: d.explicacao || '' })
   const [salvando, setSalvando] = useState(false)
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
   useEffect(() => {
