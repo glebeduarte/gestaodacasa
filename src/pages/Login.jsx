@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { supabase } from '../supabase'
 import { Meander } from '../components/ui/Meander'
 
-export default function Login() {
-  const [modo, setModo] = useState('entrar')
+export default function Login({ modoInicial = 'entrar', onVoltar }) {
+  const [modo, setModo] = useState(modoInicial)
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
@@ -28,6 +28,7 @@ export default function Login() {
   }
   return (
     <div className="login-wrap">
+      {onVoltar && <button className="lp-voltar" onClick={onVoltar}>← Conhecer o app</button>}
       <form onSubmit={enviar} className="login-card">
         <div className="hero" style={{ padding: '26px 22px 34px', marginBottom: 22 }}>
           <p className="eyebrow">Gestão Doméstica</p>

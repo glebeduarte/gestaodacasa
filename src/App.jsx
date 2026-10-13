@@ -7,6 +7,7 @@ import { nomeUsuario, iniciais } from './util'
 import { ToastProvider } from './components/ui/Toast'
 import { FolhaDespesa } from './components/FolhaDespesa'
 import Login from './pages/Login'
+import Landing from './pages/Landing'
 import Inicio from './pages/Inicio'
 import Categorias from './pages/Categorias'
 import Categoria from './pages/Categoria'
@@ -150,7 +151,7 @@ export default function App() {
     return () => sub.subscription.unsubscribe()
   }, [])
   if (sessao === undefined) return <div className="carregando">Carregando…</div>
-  if (!sessao) return <Login />
+  if (!sessao) return <Publico />
   return (
     <ToastProvider>
       <CasaProvider sessao={sessao}>
@@ -206,4 +207,12 @@ function Rotas({ sessao }) {
       </Routes>
     </Layout>
   )
+}
+
+// Sem login: apresentação do app, com acesso a criar conta e entrar
+function Publico() {
+  const inicial = /^\/(entrar|login)/.test(window.location.pathname) ? 'entrar' : /^\/(criar|cadastro)/.test(window.location.pathname) ? 'criar' : null
+  const [modo, setModo] = useState(inicial)
+  if (!modo) return <Landing onEntrar={(m) => { setModo(m); window.scrollTo(0, 0) }} />
+  return <Login key={modo} modoInicial={modo} onVoltar={() => setModo(null)} />
 }
