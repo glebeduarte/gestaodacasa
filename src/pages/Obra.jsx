@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { Phone, MessageCircle, Pencil, Check, Plus, FileText, Hammer, Package, ListChecks, ChevronDown, RotateCcw } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, soma } from '../hooks'
@@ -188,7 +188,8 @@ export default function Obra() {
           <div className="px photos">{fotos.slice(0, 9).map((u, i) => <a key={i} href={u} target="_blank" rel="noreferrer"><img src={u} alt="" /></a>)}</div></section>
       )}
 
-      <div className="px mt24 btnrow">
+      <div className="px mt16"><Link className="btn block" to={`/relatorios/obras/${o.id}`}><FileText size={17} className="i" />Ver relatório da obra</Link></div>
+      <div className="px mt12 btnrow">
         <button className="btn dark" onClick={() => setPagar(true)}><Plus size={18} className="i" />Pagamento</button>
         {o.status !== 'concluida' ? <button className="btn primary" onClick={concluir}><Check size={18} className="i" />Concluir</button>
           : <button className="btn soft" onClick={() => mudarStatus('em_andamento')}><RotateCcw size={18} className="i" />Reabrir obra</button>}

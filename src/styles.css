@@ -497,3 +497,39 @@ details.more .inner{padding:0 16px 16px}
 .tema:disabled{cursor:default;opacity:.7}
 .status-pick{position:relative;cursor:pointer;gap:4px}
 .status-pick select{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:16px}
+
+/* Relatórios */
+.rel-cab h1{font-size:26px;margin-top:4px}
+.rel-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.rel-kpis .stat .muted{font-size:11px;margin-top:2px}
+@media (max-width:560px){.rel-kpis{grid-template-columns:1fr 1fr}}
+.rel-alerta{border-radius:var(--r-sm);background:#FFF8EA;border:1px solid #F3E4BD;padding:12px 14px;color:#6B4A0A;font-size:13.5px}
+.rel-alerta b{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.rel-alerta ul{margin:0;padding-left:18px}
+.rel-sec h2{display:flex;align-items:center;gap:8px;font-size:17px;margin-bottom:10px}
+.rel-sec h2 .i{color:var(--primary)}
+.rel-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+.rel-grid span{display:block;font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.rel-grid b{font-size:14.5px}
+.rel-lista{list-style:none;margin:0;padding:0}
+.rel-lista li{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.rel-lista li:last-child{border-bottom:0}
+.rel-lista li span{flex:1}.rel-lista li em{color:var(--warn);font-style:normal;font-size:12px}
+.rel-lista li small{color:var(--muted);font-size:12px;white-space:nowrap}
+.rel-lista .i{margin-top:2px;color:var(--muted);flex:0 0 auto}.rel-lista .i.ok{color:var(--ok)}
+.rel-tab{width:100%;border-collapse:collapse;font-size:13.5px}
+.rel-tab th{text-align:left;font-size:11.5px;color:var(--muted);text-transform:uppercase;padding:6px 4px;border-bottom:1px solid var(--line)}
+.rel-tab td{padding:8px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+.rel-tab td small{color:var(--muted)}
+.rel-tab .r{text-align:right;white-space:nowrap}
+.rel-tab tfoot td{font-weight:800;border-bottom:0;border-top:2px solid var(--ink)}
+.rel-tempo{list-style:none;margin:0;padding:0 0 0 12px;border-left:2px solid var(--line)}
+.rel-tempo li{position:relative;padding:4px 0 10px 12px;font-size:13.5px;white-space:pre-wrap}
+.rel-tempo li::before{content:'';position:absolute;left:-19px;top:9px;width:10px;height:10px;border-radius:50%;background:var(--pool)}
+.rel-tempo b{display:block;font-size:12px;color:var(--muted)}
+@media print{
+  .relatorio .card{border:1px solid var(--line)}
+  .relatorio .px{padding-left:0;padding-right:0}
+  .rel-kpis{grid-template-columns:repeat(4,1fr)}
+  .rel-sec{break-inside:auto}
+}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
 import { supabase } from './supabase'
-import { Home, LayoutGrid, Plus, Hammer, Menu, Users, Wrench, FileText, Package, BarChart3, Settings, LogOut, History, Receipt, ArrowLeftRight, ChevronDown } from 'lucide-react'
+import { Home, LayoutGrid, Plus, Hammer, Menu, Users, Wrench, FileText, Package, BarChart3, Settings, LogOut, History, Receipt, ArrowLeftRight, ChevronDown, FileBarChart } from 'lucide-react'
 import { q } from './hooks'
 import { nomeUsuario, iniciais } from './util'
 import { ToastProvider } from './components/ui/Toast'
@@ -24,6 +24,7 @@ import Contas from './pages/Contas'
 import Importar from './pages/Importar'
 import Casas, { NovaCasa, ICONE_MOD } from './pages/Casas'
 import Modulo from './pages/Modulo'
+import Relatorios, { RelatorioObras } from './pages/Relatorios'
 import { CasaProvider, useCasa } from './lib/casa'
 import { MODULOS, nomeTipo } from './lib/tipos'
 
@@ -42,6 +43,7 @@ function menus(casa) {
     ...itensMod,
     { to: '/documentos', label: 'Documentos', Icon: FileText, cls: 'c-docs', key: 'docs' },
     { to: '/fechamento', label: 'Fechamento', Icon: BarChart3, cls: 'c-fech' },
+    { to: '/relatorios', label: 'Relatórios', Icon: FileBarChart, cls: 'c-obras' },
     { to: '/casas', label: 'Minhas casas', Icon: ArrowLeftRight, cls: 'c-piscina' },
     { to: '/admin', label: 'Ajustes', Icon: Settings, cls: 'c-neutral' },
   ]
@@ -52,6 +54,7 @@ function menus(casa) {
       { to: '/categorias', label: 'Categorias', Icon: LayoutGrid },
       { to: '/historico', label: 'Histórico', Icon: History },
       { to: '/fechamento', label: 'Fechamento', Icon: BarChart3 },
+      { to: '/relatorios', label: 'Relatórios', Icon: FileBarChart },
     ],
     [...itensMod, { to: '/documentos', label: 'Documentos', Icon: FileText, key: 'docs' }],
     [{ to: '/admin', label: 'Ajustes', Icon: Settings }],
@@ -184,6 +187,9 @@ function Rotas({ sessao }) {
         <Route path="/contas" element={<Contas />} />
         <Route path="/importar" element={<Importar />} />
         <Route path="/fechamento" element={<Fechamento />} />
+        <Route path="/relatorios" element={<Relatorios />} />
+        {mods.includes('obras') && <Route path="/relatorios/obras" element={<RelatorioObras />} />}
+        {mods.includes('obras') && <Route path="/relatorios/obras/:id" element={<RelatorioObras />} />}
         <Route path="/admin" element={<Admin sessao={sessao} />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
