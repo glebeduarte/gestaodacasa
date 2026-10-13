@@ -25,6 +25,9 @@ import Importar from './pages/Importar'
 import Casas, { NovaCasa, ICONE_MOD } from './pages/Casas'
 import Modulo from './pages/Modulo'
 import Relatorios, { RelatorioObras } from './pages/Relatorios'
+import Areas from './components/Areas'
+import { AdicionarProvider, useAdicionar } from './components/Adicionar'
+import { CapasProvider } from './lib/capas'
 import { CasaProvider, useCasa } from './lib/casa'
 import { MODULOS, nomeTipo } from './lib/tipos'
 
@@ -51,6 +54,7 @@ function menus(casa) {
     [
       { to: '/', label: 'Início', Icon: Home, end: true },
       { to: '/contas', label: 'Contas', Icon: Receipt, key: 'contas' },
+      { to: '/areas', label: 'Áreas da casa', Icon: LayoutGrid },
       { to: '/categorias', label: 'Categorias', Icon: LayoutGrid },
       { to: '/historico', label: 'Histórico', Icon: History },
       { to: '/fechamento', label: 'Fechamento', Icon: BarChart3 },
@@ -60,19 +64,20 @@ function menus(casa) {
     [{ to: '/admin', label: 'Ajustes', Icon: Settings }],
   ]
   // 4º botão da barra inferior: o primeiro módulo ligado (ou Contas)
-  const atalho = itensMod[0] || { to: '/contas', label: 'Contas', Icon: Receipt }
+  const atalho = itensMod.find(i => i.to === '/pessoas') || itensMod.find(i => i.to === '/obras') || { to: '/relatorios', label: 'Relatórios', Icon: FileBarChart }
   return { MAIS, SIDE, atalho }
 }
 
 function Layout({ children, sessao }) {
   const [despesa, setDespesa] = useState(null)
+  const { abrir } = useAdicionar()
   const [mais, setMais] = useState(false)
   const [pend, setPend] = useState({ manut: 0, docs: 0, estoque: 0, total: 0 })
   const loc = useLocation()
   useEffect(() => { q.pendencias().then(setPend); setMais(false) }, [loc.pathname])
   const { casa } = useCasa()
   const { MAIS, SIDE, atalho } = menus(casa)
-  const naMais = MAIS.some(m => loc.pathname.startsWith(m.to))
+  const naMais = (MAIS.some(m => m.to !== '/contas' && loc.pathname.startsWith(m.to)) || loc.pathname.startsWith('/categorias')) && !loc.pathname.startsWith(atalho.to)
   const email = sessao?.user?.email
   const nome = nomeUsuario(sessao?.user)
 
@@ -81,7 +86,7 @@ function Layout({ children, sessao }) {
       <aside className="desk-side" aria-label="Menu principal">
         <div className="logo">Gestão Doméstica</div>
         <NavLink to="/casas" className="casa-switch"><ArrowLeftRight size={16} className="i" /><div style={{ minWidth: 0 }}><b>{casa?.nome}</b><small>{nomeTipo(casa?.tipo)} · trocar de casa</small></div></NavLink>
-        <button className="side-cta" onClick={() => setDespesa({})}><Plus size={18} strokeWidth={2.6} className="i" />Registrar gasto</button>
+        <button className="side-add" onClick={() => abrir()}><Plus size={18} strokeWidth={2.6} />Adicionar</button>
         {SIDE.map((grupo, gi) => (
           <div key={gi}>
             {gi > 0 && <div className="side-sep" />}
@@ -107,10 +112,10 @@ function Layout({ children, sessao }) {
 
       <nav className="nav" aria-label="Navegação">
         <NavLink to="/" end className={({ isActive }) => isActive ? 'on' : ''}><Home size={23} className="i" /><span>Início</span></NavLink>
-        <NavLink to="/categorias" className={({ isActive }) => isActive ? 'on' : ''}><LayoutGrid size={23} className="i" /><span>Categorias</span></NavLink>
-        <a href="#" className="fab" aria-label="Registrar gasto" onClick={e => { e.preventDefault(); setDespesa({}) }}><span><Plus size={28} strokeWidth={2.4} className="i" /></span><em>Registrar</em></a>
+        <NavLink to="/contas" className={({ isActive }) => isActive ? 'on' : ''}><Receipt size={23} className="i" /><span>Contas</span>{pend.contas > 0 && <span className="navbadge">{pend.contas}</span>}</NavLink>
+        <button className="mid" aria-label="Adicionar" onClick={() => abrir()}><span><Plus size={30} strokeWidth={2.4} /></span></button>
+        <NavLink to="/areas" className={({ isActive }) => isActive || naMais ? 'on' : ''}><LayoutGrid size={23} className="i" /><span>Áreas</span>{pend.total - (pend.contas || 0) > 0 && <span className="navbadge">{pend.total - (pend.contas || 0)}</span>}</NavLink>
         <NavLink to={atalho.to} className={({ isActive }) => isActive ? 'on' : ''}><atalho.Icon size={23} className="i" /><span>{atalho.label}</span></NavLink>
-        <button className={naMais ? 'on' : ''} onClick={() => setMais(true)}><Menu size={23} className="i" /><span>Mais</span>{pend.total > 0 && <span className="navbadge">{pend.total}</span>}</button>
       </nav>
 
       {mais && (
@@ -131,6 +136,7 @@ function Layout({ children, sessao }) {
         </>
       )}
 
+      <button className="fab-desk" aria-label="Adicionar" onClick={() => abrir()}><Plus size={32} /></button>
       {despesa && <FolhaDespesa inicial={despesa} onFechar={() => setDespesa(null)} />}
     </div>
   )
@@ -148,9 +154,13 @@ export default function App() {
   return (
     <ToastProvider>
       <CasaProvider sessao={sessao}>
+        <CapasProvider>
         <BrowserRouter>
+        <AdicionarProvider>
           <Rotas sessao={sessao} />
+        </AdicionarProvider>
         </BrowserRouter>
+        </CapasProvider>
       </CasaProvider>
     </ToastProvider>
   )
@@ -171,6 +181,7 @@ function Rotas({ sessao }) {
         <Route path="/" element={<Inicio sessao={sessao} />} />
         <Route path="/casas" element={<Casas />} />
         <Route path="/casas/nova" element={<NovaCasa />} />
+        <Route path="/areas" element={<Areas />} />
         <Route path="/categorias" element={<Categorias />} />
         <Route path="/categorias/:id" element={<Categoria />} />
         <Route path="/casa/:id" element={<Categoria />} />

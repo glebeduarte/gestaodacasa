@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { Phone, MessageCircle, Pencil, Check, Plus, FileText, Hammer, Package, ListChecks, ChevronDown, RotateCcw } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, soma } from '../hooks'
@@ -20,7 +20,8 @@ export default function Obra() {
   const toast = useToast()
   const [pagar, setPagar] = useState(false)
   const [editar, setEditar] = useState(false)
-  const [orc, setOrc] = useState(false)
+  const [busca] = useSearchParams()
+  const [orc, setOrc] = useState(busca.get('orcamento') ? true : false)
   const [att, setAtt] = useState(false)
   const [editDespesa, setEditDespesa] = useState(null)
   const [novoItem, setNovoItem] = useState('')

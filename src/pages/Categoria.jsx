@@ -5,7 +5,8 @@ import { supabase } from '../supabase'
 import { useDados, soma } from '../hooks'
 import { brl, dataCurta, hoje, mesAtual, variacao, numero, mascaraReais, exibirReais } from '../util'
 import { CatTile } from '../lib/categoryStyle'
-import { BackBar } from '../components/ui/BackBar'
+import { SectionHero, QuickAdd } from '../components/Secao'
+import { temaCategoria, degrade } from '../lib/sectionThemes'
 import { FolhaDespesa } from '../components/FolhaDespesa'
 import { Sheet } from '../components/ui/Sheet'
 import { useToast } from '../components/ui/Toast'
@@ -62,14 +63,17 @@ export default function Categoria() {
 
   return (
     <>
-      <BackBar to="/categorias" titulo={c.nome} />
-      <header className="hdr" style={{ paddingTop: 12 }}>
-        <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-          <CatTile cat={c} size="lg" />
-          <div><p className="hero-value" style={{ color: 'var(--ink)', fontSize: 32 }}>{brl(totalMes)}</p>
-            <p className="sub">{varia !== null ? `${varia >= 0 ? '+' : ''}${varia}% vs mês passado (${brl(mesAnt)})` : 'este mês'}</p></div>
-        </div>
-      </header>
+      {(() => { const tc = temaCategoria(c); return (
+        <SectionHero chave={`cat_${c.id}`} arteChave={tc.arte} g={tc.g} Icon={tc.Icon} titulo={c.nome} voltar="/categorias"
+          subtitulo={varia !== null ? `Neste mês · ${varia >= 0 ? '+' : ''}${varia}% vs mês passado (${brl(mesAnt)})` : 'Neste mês'} valor={brl(totalMes)} />
+      ) })()}
+
+      <div className="sec-h"><h2>Lançar em {c.nome}</h2></div>
+      <QuickAdd placeholder="Descrição" onSalvar={async (d, v) => {
+        if (!v) { toast({ txt: 'Informe o valor.', erro: true }); throw new Error('sem valor') }
+        await supabase.from('despesas').insert({ tipo: 'variavel', categoria_id: id, descricao: d || c.nome, valor: v, data: hoje(), forma_pagamento: 'Pix', fotos: [] })
+        toast('Salvo'); recarregar()
+      }} />
 
       <section className="px mt16">
         <div className="card">
@@ -88,12 +92,12 @@ export default function Categoria() {
 
       <div className="sec-h mt24"><h2>Contas</h2><button className="link" onClick={() => acoesConta.abrirNova({ categoria_id: id })}>+ Adicionar</button></div>
       <div className="px stack-y">
-        {contas.length === 0 && soltos.length === 0 && <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nenhuma conta nesta categoria ainda.</p></div>}
+        {contas.length === 0 && soltos.length === 0 && <div className="tip"><p className="s" style={{ marginTop: 0 }}>Nada lançado ainda. Use o campo acima.</p></div>}
         {contas.map(ct => <ContaLinha key={ct.id} c={ct} onAbrir={acoesConta.abrir} onPagar={acoesConta.pagar} />)}
         {soltos.map(d => (
           <button key={d.id} type="button" className="conta-row st-paga" onClick={() => setEditDespesa(d)} style={{ textAlign: 'left' }}>
             <div className="conta-main" style={{ cursor: 'pointer' }}>
-              <CatTile cat={c} size="md" />
+              {(() => { const tc = temaCategoria(c); return <span className="s-dot" style={{ background: degrade(tc.g) }}><tc.Icon size={18} /></span> })()}
               <div className="grow"><p className="t">{d.descricao}</p><p className="s">paga em {dataCurta(d.data)}{d.forma_pagamento ? ` · ${d.forma_pagamento}` : ''}{d.pessoas?.nome ? ` · ${d.pessoas.nome}` : ''}{d.consumo ? ` · ${Number(d.consumo)} ${d.unidade_consumo}` : ''}</p></div>
               <b className="num">{brl(d.valor)}</b>
             </div>

@@ -5,7 +5,9 @@ import { supabase } from '../supabase'
 import { useDados } from '../hooks'
 import { hoje, numero } from '../util'
 import { CatTile } from '../lib/categoryStyle'
-import { BackBar } from '../components/ui/BackBar'
+import { SectionHero, QuickAdd } from '../components/Secao'
+import { SECOES } from '../lib/sectionThemes'
+import { avisarMudanca } from '../hooks'
 import { Sheet } from '../components/ui/Sheet'
 import { useToast } from '../components/ui/Toast'
 
@@ -40,8 +42,16 @@ export default function Estoque() {
 
   return (
     <>
-      <BackBar titulo="Estoque" acao={<button className="iconbtn" onClick={() => setNovo(true)} aria-label="Novo"><Plus size={20} className="i" /></button>} />
-      <header className="hdr" style={{ paddingTop: 12, paddingBottom: 8 }}><div><p className="eyebrow">O que tem em casa</p><h1>Estoque</h1></div></header>
+      <SectionHero chave="estoque" g={SECOES.estoque.g} Icon={SECOES.estoque.Icon} titulo="Estoque" subtitulo="Produtos da casa, piscina e jardim">
+        <div className="btnrow mt12"><button className="btn sm" onClick={() => setNovo(true)}><Plus size={15} className="i" />Novo com detalhes</button></div>
+      </SectionHero>
+      <QuickAdd placeholder="Item e quantidade. Ex: Cloro, 2 baldes" comValor={false} onSalvar={async (d) => {
+        if (!d) throw new Error('vazio')
+        const [nome, resto = ''] = d.split(/,(.+)/)
+        const q = numero((resto.match(/[\d.,]+/) || [])[0]) || 0
+        await supabase.from('estoque_itens').insert({ nome: nome.trim(), quantidade: q, unidade: resto.replace(/[\d.,]+/, '').trim() || null, minimo: 1, ultima_compra: hoje(), ativo: true })
+        toast('Salvo'); recarregar()
+      }} />
 
       {faltando.length > 0 && (
         <div className="px">

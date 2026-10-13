@@ -42,7 +42,7 @@ function envolver(builder) {
   })
 }
 // Casa em uso: toda leitura das tabelas da casa é filtrada por ela e toda gravação leva o casa_id
-const TABELAS_CASA = new Set(['categorias', 'contas', 'custos_fixos', 'despesas', 'documentos', 'estoque_itens', 'importacoes', 'manutencao_execucoes', 'manutencoes', 'obra_atualizacoes', 'obra_itens', 'obra_orcamentos', 'obras', 'pagamento_itens', 'pessoas', 'modulo_itens'])
+const TABELAS_CASA = new Set(['categorias', 'contas', 'custos_fixos', 'despesas', 'documentos', 'estoque_itens', 'importacoes', 'manutencao_execucoes', 'manutencoes', 'obra_atualizacoes', 'obra_itens', 'obra_orcamentos', 'obras', 'pagamento_itens', 'pessoas', 'modulo_itens', 'section_covers'])
 let casaAtual = null
 export const definirCasaAtual = (id) => { casaAtual = id }
 export const casaAtualId = () => casaAtual

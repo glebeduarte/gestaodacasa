@@ -5,12 +5,18 @@ import { supabase } from '../supabase'
 import { useDados, q, soma } from '../hooks'
 import { brl, mesAtual, variacao } from '../util'
 import { CatTile } from '../lib/categoryStyle'
+import { SectionHero, SectionTile } from '../components/Secao'
+import { SECOES, temaCategoria } from '../lib/sectionThemes'
+import { useAdicionar } from '../components/Adicionar'
+import { useNavigate } from 'react-router-dom'
 
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
 export default function Categorias() {
   const [offset, setOffset] = useState(0)
   const [ordem, setOrdem] = useState('gasto')
+  const nav = useNavigate()
+  const { abrir } = useAdicionar()
   const { dados } = useDados(async () => {
     const d = new Date(); d.setMonth(d.getMonth() + offset)
     const y = d.getFullYear(), m = d.getMonth()
@@ -41,50 +47,26 @@ export default function Categorias() {
 
   return (
     <>
-      <header className="hdr">
-        <div><p className="eyebrow">Onde o dinheiro vai</p><h1>Categorias</h1></div>
-        <Link to="/historico" className="iconbtn" aria-label="Histórico"><ChevronRight size={20} className="i" /></Link>
-      </header>
+      <SectionHero chave="categorias" g={SECOES.categorias.g} Icon={SECOES.categorias.Icon} titulo="Categorias" subtitulo="Toque numa categoria para ver e lançar" valor={brl(total)}>
+        <div className="mes-nav">
+          <button onClick={() => setOffset(o => o - 1)} aria-label="Mês anterior"><ChevronLeft size={18} /></button>
+          <b>{label.charAt(0).toUpperCase() + label.slice(1)}</b>
+          <button onClick={() => setOffset(o => Math.min(0, o + 1))} aria-label="Próximo mês" disabled={offset >= 0}><ChevronRight size={18} /></button>
+        </div>
+      </SectionHero>
 
-      <div className="px" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <button className="iconbtn" onClick={() => setOffset(o => o - 1)} aria-label="Mês anterior"><ChevronLeft size={20} className="i" /></button>
-        <b style={{ textTransform: 'capitalize', fontSize: 15 }}>{label}</b>
-        <button className="iconbtn" onClick={() => setOffset(o => Math.min(0, o + 1))} aria-label="Próximo mês" disabled={offset >= 0} style={{ opacity: offset >= 0 ? .4 : 1 }}><ChevronRight size={20} className="i" /></button>
-      </div>
-
-      {total > 0 && (
-        <section className="px mt16">
-          <div className="card">
-            <p className="muted" style={{ marginBottom: 10 }}>Como o mês se dividiu</p>
-            <div style={{ display: 'flex', height: 12, borderRadius: 7, overflow: 'hidden', gap: 2 }}>
-              {linhas.filter(l => l.gasto > 0).sort((a, b) => b.gasto - a.gasto).map(l => (
-                <i key={l.id} className={l.cor || 'c-neutral'} title={l.nome} style={{ width: `${l.gasto / total * 100}%`, background: 'var(--c)', display: 'block' }} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      <div className="hscroll mt16">
+      <div className="hscroll">
         <button className={`pick ${ordem === 'gasto' ? 'on' : ''}`} onClick={() => setOrdem('gasto')}>Maior gasto</button>
         <button className={`pick ${ordem === 'az' ? 'on' : ''}`} onClick={() => setOrdem('az')}>A a Z</button>
       </div>
 
-      <section className="px mt16">
-        <div className="list">
-          {visiveis.map(l => (
-            <Link key={l.id} className="row" to={`/categorias/${l.id}`}>
-              <CatTile cat={l} size="md" />
-              <div className="grow"><p className="t">{l.nome}</p><p className="s">{l.gasto > 0 ? 'Contas do mês' : 'Sem gasto'}</p></div>
-              <div className="r"><div className="v num">{brl(l.gasto)}</div>
-                {l.varia !== null && (Math.abs(l.varia) < 3
-                  ? <span className="chip" style={{ height: 20, fontSize: 11 }}><Minus size={12} className="i" />igual</span>
-                  : <span className={`chip ${l.varia > 0 ? 'danger' : 'ok'}`} style={{ height: 20, fontSize: 11 }}>{l.varia > 0 ? <ArrowUp size={12} className="i" /> : <ArrowDown size={12} className="i" />}{Math.abs(l.varia)}%</span>)}
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+      <div className="s-grid mt12">
+        {visiveis.map((l, i) => { const tc = temaCategoria(l, i); return (
+          <SectionTile key={l.id} chave={`cat_${l.id}`} arteChave={tc.arte} g={tc.g} Icon={tc.Icon} nome={l.nome}
+            resumo={`${brl(l.gasto)}${l.varia !== null && Math.abs(l.varia) >= 3 ? ` · ${l.varia > 0 ? '+' : ''}${l.varia}%` : ''}`}
+            onAbrir={() => nav(`/categorias/${l.id}`)} onMais={() => abrir({ tipo: 'gasto', categoria_id: l.id })} />
+        ) })}
+      </div>
       <div style={{ height: 12 }} />
     </>
   )

@@ -3,7 +3,9 @@ import { Search, KeyRound, Landmark, ShieldCheck, PenLine, BookOpen, Receipt, Fi
 import { supabase } from '../supabase'
 import { useDados } from '../hooks'
 import { brl, dataCurta, diasEntre } from '../util'
-import { BackBar } from '../components/ui/BackBar'
+import { SectionHero, QuickAdd } from '../components/Secao'
+import { SECOES } from '../lib/sectionThemes'
+import { avisarMudanca } from '../hooks'
 import { Sheet } from '../components/ui/Sheet'
 import { useToast } from '../components/ui/Toast'
 
@@ -42,8 +44,8 @@ export default function Documentos() {
 
   return (
     <>
-      <BackBar titulo="Documentos" acao={<button className="iconbtn" onClick={() => setNovo(true)} aria-label="Novo"><Plus size={20} className="i" /></button>} />
-      <header className="hdr" style={{ paddingTop: 12, paddingBottom: 8 }}><div><p className="eyebrow">Papelada da casa</p><h1>Documentos</h1></div></header>
+      <SectionHero chave="documentos" g={SECOES.documentos.g} Icon={SECOES.documentos.Icon} titulo="Documentos" subtitulo="Contratos, garantias, notas e orçamentos" />
+      <div className="qa" style={{ justifyContent: 'center' }}><button type="button" style={{ padding: '12px 18px' }} onClick={() => setNovo(true)}>📷 Fotografar ou enviar arquivo</button></div>
 
       <div className="px">
         <label className="input" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

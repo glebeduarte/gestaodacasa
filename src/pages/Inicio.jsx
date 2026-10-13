@@ -7,6 +7,10 @@ import { CatTile } from '../lib/categoryStyle'
 import { Meander } from '../components/ui/Meander'
 import { useToast } from '../components/ui/Toast'
 import { useCasa } from '../lib/casa'
+import { SectionHero, QuickAdd } from '../components/Secao'
+import { GradeAreas } from '../components/Areas'
+import { SECOES, degrade, temaCategoria } from '../lib/sectionThemes'
+import { avisarMudanca } from '../hooks'
 import { ContaLinha } from '../components/FolhaConta'
 import { useAcoesConta } from './Contas'
 import { statusConta, gerarContasMes } from '../lib/contas'
@@ -69,123 +73,66 @@ export default function Inicio({ sessao }) {
 
   return (
     <>
-      <header className="hdr">
-        <div><p className="eyebrow">{casa?.nome} · {dataExtenso()}</p><h1>{saudacao()}{email ? `, ${nomeUsuario(sessao.user)}` : ''}</h1></div>
+      <div className="hello">
+        <div><small>{casa?.nome} · {dataExtenso()}</small><h1>{saudacao()}{email ? `, ${nomeUsuario(sessao.user)}` : ''}</h1></div>
         <span className="avatar">{iniciais(nomeUsuario(sessao?.user))}</span>
-      </header>
+      </div>
 
-      <section className="px">
-        <Link className="hero card-link" to="/fechamento">
-          <div className="hero-top"><span className="eyebrow">{mes.label} · casa</span><span className="hero-link">Ver resumo <ChevronRight size={16} className="i" /></span></div>
-          <p className="hero-label">Gasto até agora</p>
-          <p className="hero-value num">{brl(total)}</p>
-          <p className="hero-sub">{previstoBase > total ? <>de {brl(previstoBase)} previstos · ainda cabem <b>{brl(cabe)}</b></> : 'somando contas, obras e pessoas'}</p>
-          <div className="sbar">
-            <i style={{ width: `${totalFixos / pMax * 100}%`, background: '#fff' }} />
-            <i style={{ width: `${totalObras / pMax * 100}%`, background: '#FFC766' }} />
-            <i style={{ width: `${totalPessoas / pMax * 100}%`, background: '#8EE3EF' }} />
-          </div>
-          <div className="legend">
-            <div><span className="dot" style={{ background: '#fff' }} />Contas<b className="num">{brl(totalFixos)}</b></div>
-            <div><span className="dot" style={{ background: '#FFC766' }} />Obras<b className="num">{brl(totalObras)}</b></div>
-            <div><span className="dot" style={{ background: '#8EE3EF' }} />Pessoas<b className="num">{brl(totalPessoas)}</b></div>
-          </div>
-          <Meander />
-        </Link>
-      </section>
+      <Link to="/fechamento" style={{ display: 'block' }}>
+        <SectionHero chave="inicio" g={SECOES.inicio.g} Icon={SECOES.inicio.Icon} titulo={mes.label.replace(/^./, c => c.toUpperCase())} subtitulo="Gasto até agora, somando contas, obras e pessoas" valor={brl(total)} />
+      </Link>
 
-      <section className="sec">
-        <div className="sec-h"><h2>Contas da casa{cAtras.length > 0 && <span className="count danger">{cAtras.length}</span>}</h2><Link to="/contas">Ver todas <ChevronRight size={16} className="i" /></Link></div>
-        <div className="px">
-          <div className="conta-resumo">
-            <Link to="/contas" className="cr danger"><span>Atrasadas</span><b className="num">{brl(soma(cAtras))}</b><small>{cAtras.length} conta{cAtras.length !== 1 ? 's' : ''}</small></Link>
-            <Link to="/contas" className="cr pool"><span>A vencer</span><b className="num">{brl(soma(cVencer))}</b><small>{cVencer.length} conta{cVencer.length !== 1 ? 's' : ''}</small></Link>
-            <Link to="/contas" className="cr ok"><span>Pagas no mês</span><b className="num">{brl(soma(cPagas))}</b><small>{cPagas.length} conta{cPagas.length !== 1 ? 's' : ''}</small></Link>
-          </div>
-          <div className="stack-y mt12">
-            {cLista.map(c => <ContaLinha key={c.id} c={c} onAbrir={acoesConta.abrir} onPagar={acoesConta.pagar} />)}
-            {cLista.length === 0 && <div className="tip"><p className="s" style={{ marginTop: 0 }}>{contas.length ? 'Tudo pago por aqui.' : 'Nenhuma conta cadastrada ainda.'}</p></div>}
-          </div>
-          <button className="btn soft block mt12" onClick={() => acoesConta.abrirNova()}><Plus size={18} className="i" />Adicionar conta</button>
-        </div>
-      </section>
+      <div className="s-stats">
+        <Link to="/contas" className="stat"><span>Contas</span><b className="num">{brl(totalFixos)}</b></Link>
+        <Link to={mods.includes('obras') ? '/obras' : '/historico'} className="stat"><span>Obras</span><b className="num">{brl(totalObras)}</b></Link>
+        <Link to={mods.includes('pessoas') ? '/pessoas' : '/historico'} className="stat"><span>Pessoas</span><b className="num">{brl(totalPessoas)}</b></Link>
+      </div>
 
-      {/* No celular é uma coluna, na ordem abaixo. No desktop vira duas colunas:
-          esquerda = atenção + próximos cuidados, direita = categorias + obra. */}
-      <div className="home-grid">
-        {top3.length > 0 && (
-          <section className="sec s-alerts">
-            <div className="sec-h"><h2>Precisa de atenção<span className="count">{alertas.length}</span></h2></div>
-            <div className="px stack-y">
-              {top3.map((a, i) => (
-                <div key={i} className={`alert k-${a.k}`}>
-                  {a.ic === 'wrench' ? <span className="tile t-md c-manut"><Wrench size={22} className="i" /></span> : <CatTile cat={a.cat} size="md" />}
-                  <div className="grow"><p className="t">{a.texto}</p><p className="s">{a.sub}</p></div>
-                  {a.acao === 'pagar' && <button className="btn sm dark" onClick={() => pagarFixo(a.fx)}>Paguei</button>}
-                  {a.acao === 'comprar' && <Link className="btn sm soft" to="/estoque">Comprar</Link>}
-                  {a.acao === 'ver-manut' && <Link className="btn sm" to="/manutencoes">Ver</Link>}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+      <div className="sec-h mt24"><h2>Lançar rápido</h2></div>
+      <QuickAdd placeholder="O que você pagou? Ex: gás, jardineiro…" onSalvar={async (d, v) => {
+        if (!v) { toast({ txt: 'Informe o valor.', erro: true }); throw new Error('sem valor') }
+        await supabase.from('despesas').insert({ tipo: 'variavel', descricao: d || 'Gasto', valor: v, data: hj, forma_pagamento: 'Pix', fotos: [] })
+        toast('Salvo'); avisarMudanca()
+      }} />
 
-        <section className="sec s-cats">
-          <div className="sec-h"><h2>Categorias</h2><Link to="/categorias">Ver todas <ChevronRight size={16} className="i" /></Link></div>
-          <div className="px catgrid">
-            {categorias.slice(0, 8).map(c => (
-              <Link key={c.id} className="cat card-link" to={`/categorias/${c.id}`}>
-                <CatTile cat={c} size="md" /><span className="n">{c.nome}</span><span className="v num">{brl(catGasto(c))}</span>
-              </Link>
+      {top3.length > 0 && (
+        <section className="sec">
+          <div className="sec-h"><h2>Precisa de atenção<span className="count">{alertas.length + cAtras.length}</span></h2></div>
+          <div className="px stack-y">
+            {cAtras.slice(0, 3).map(c => <ContaLinha key={c.id} c={c} onAbrir={acoesConta.abrir} onPagar={acoesConta.pagar} />)}
+            {top3.map((a, i) => (
+              <div key={i} className={`alert k-${a.k}`}>
+                {a.ic === 'wrench' ? <span className="tile t-md c-manut"><Wrench size={22} className="i" /></span> : <CatTile cat={a.cat} size="md" />}
+                <div className="grow"><p className="t">{a.texto}</p><p className="s">{a.sub}</p></div>
+                {a.acao === 'pagar' && <button className="btn sm dark" onClick={() => pagarFixo(a.fx)}>Paguei</button>}
+                {a.acao === 'comprar' && <Link className="btn sm soft" to="/estoque">Comprar</Link>}
+                {a.acao === 'ver-manut' && <Link className="btn sm" to="/manutencoes">Ver</Link>}
+              </div>
             ))}
           </div>
         </section>
+      )}
+      {top3.length === 0 && cAtras.length > 0 && (
+        <section className="sec"><div className="sec-h"><h2>Contas atrasadas<span className="count">{cAtras.length}</span></h2></div>
+          <div className="px stack-y">{cAtras.slice(0, 3).map(c => <ContaLinha key={c.id} c={c} onAbrir={acoesConta.abrir} onPagar={acoesConta.pagar} />)}</div></section>
+      )}
 
-        {mods.includes('obras') && ativas.length > 0 && (
-          <section className="sec s-obra">
-            <div className="sec-h"><h2>Obra em andamento</h2><Link to="/obras">Ver obras <ChevronRight size={16} className="i" /></Link></div>
-            <div className="px">
-              {ativas.slice(0, 1).map(o => {
-                const pago = soma(despesas.filter(d => d.obra_id === o.id && d.tipo !== 'material'))
-                const sem = semanasDesde(o.data_inicio)
-                let totalSem = null, pctTempo = 50
-                if (o.data_inicio && o.prazo_previsto) { totalSem = Math.max(1, Math.round((new Date(o.prazo_previsto) - new Date(o.data_inicio)) / (7 * 86400000))); pctTempo = Math.min(100, Math.round(sem / totalSem * 100)) }
-                const pctDinheiro = o.orcamento_total ? Math.min(100, Math.round(pago / o.orcamento_total * 100)) : null
-                const afrente = pctDinheiro !== null && o.prazo_previsto && pctDinheiro - pctTempo > 10
-                return (
-                  <Link key={o.id} className="card card-link" to={`/obras/${o.id}`}>
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                      <span className="tile t-md c-obras"><Wrench size={22} className="i" /></span>
-                      <div style={{ flex: 1 }}><h3>{o.nome}</h3><p className="sub">{o.pessoas?.nome ? `${o.pessoas.nome} · ` : ''}{o.data_inicio ? `semana ${sem}${totalSem ? ` de ${totalSem}` : ''}` : 'sem data'}</p></div>
-                      <span className={`chip ${o.orcamento_total ? 'pool' : 'warn'}`}>{o.orcamento_total ? 'Em andamento' : 'Sem orçamento'}</span>
-                    </div>
-                    {o.prazo_previsto && <div className="mt16"><div className="barlabel"><span>Tempo</span><b>{pctTempo}%</b></div><div className="bar"><i style={{ width: pctTempo + '%', '--b': 'var(--pool)' }} /></div></div>}
-                    {o.orcamento_total ? <div className="mt12"><div className="barlabel"><span>Pago <b className="num">{brl(pago)}</b> de {brl(o.orcamento_total)}</span><b>{pctDinheiro}%</b></div><div className="bar"><i style={{ width: pctDinheiro + '%', '--b': 'var(--warn)' }} /></div></div>
-                      : <p className="chip warn mt12"><TriangleAlert size={14} className="i" /> Peça um orçamento por escrito</p>}
-                    {afrente && <p className="chip warn mt12"><TriangleAlert size={14} className="i" /> Pagamento à frente do andamento</p>}
-                  </Link>
-                )
-              })}
-            </div>
-          </section>
-        )}
+      <div className="sec-h mt24"><h2>Áreas da casa</h2><Link to="/areas">Ver tudo <ChevronRight size={16} className="i" /></Link></div>
+      <GradeAreas />
 
-        {mods.includes('manutencoes') && manut.length > 0 && (
-          <section className="sec s-manut">
-            <div className="sec-h"><h2>Próximos cuidados</h2><Link to="/manutencoes">Agenda <ChevronRight size={16} className="i" /></Link></div>
-            <div className="px"><div className="list">
-              {manut.slice(0, 2).map(m => { const cat = categorias.find(c => c.id === m.categoria_id); const atras = m.proxima < hj
-                return (
-                  <div key={m.id} className="row">
-                    {cat ? <CatTile cat={cat} size="md" /> : <span className="tile t-md c-manut"><Wrench size={22} className="i" /></span>}
-                    <div className="grow"><p className="t">{m.nome}</p><p className="s">{atras ? 'Atrasada' : dataCurta(m.proxima)}</p></div>
-                    <span className={`chip ${atras ? 'danger' : ''}`}>{atras ? 'Atrasada' : dataCurta(m.proxima)}</span>
-                  </div>
-                ) })}
-            </div></div>
-          </section>
-        )}
-      </div>
+      {cVencer.length > 0 && (
+        <section className="sec"><div className="sec-h"><h2>A vencer</h2><Link to="/contas">Contas <ChevronRight size={16} className="i" /></Link></div>
+          <div className="px stack-y">{cVencer.slice(0, 4).map(c => <ContaLinha key={c.id} c={c} onAbrir={acoesConta.abrir} onPagar={acoesConta.pagar} />)}</div></section>
+      )}
+
+      <div className="sec-h mt24"><h2>Últimos lançamentos</h2><Link to="/historico">Ver todos <ChevronRight size={16} className="i" /></Link></div>
+      <div className="px"><div className="list">
+        {despesas.length === 0 && <div className="s-empty">Nada lançado neste mês ainda. Use o campo acima.</div>}
+        {despesas.slice(0, 6).map(d => { const tc = temaCategoria(d.categorias || { nome: d.pessoa_id ? 'diaristas' : d.obra_id ? 'obras' : '' }); return (
+          <Link key={d.id} to="/historico" className="row"><span className="s-dot" style={{ background: degrade(tc.g) }}><tc.Icon size={18} /></span>
+            <div className="grow"><p className="t">{d.descricao}</p><p className="s">{d.categorias?.nome || d.pessoas?.nome || d.obras?.nome || 'Sem categoria'} · {dataCurta(d.data)}</p></div>
+            <b className="num">{brl(d.valor)}</b></Link>) })}
+      </div></div>
       <div style={{ height: 12 }} />
       {acoesConta.folhas}
     </>

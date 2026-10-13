@@ -5,7 +5,9 @@ import { supabase } from '../supabase'
 import { useDados, q, soma } from '../hooks'
 import { brl, dataCurta, iniciais, hoje, mesAtual, UNIDADE, numero, mascaraReais, exibirReais } from '../util'
 import { catStyle } from '../lib/categoryStyle'
-import { BackBar } from '../components/ui/BackBar'
+import { SectionHero } from '../components/Secao'
+import { SECOES, degrade } from '../lib/sectionThemes'
+import { FolhaPagamento } from '../components/FolhaPagamento'
 import { Sheet } from '../components/ui/Sheet'
 import { useToast } from '../components/ui/Toast'
 import { excluirOuArquivar } from '../lib/crud'
@@ -31,6 +33,7 @@ export function previstoMes(p) {
 export default function Pessoas() {
   const [filtro, setFiltro] = useState('todos')
   const [nova, setNova] = useState(null)
+  const [pagar, setPagar] = useState(null)
   const toast = useToast()
   const { dados, recarregar } = useDados(async () => {
     const [pessoas, cats, obras, despesas, adiant] = await Promise.all([
@@ -73,13 +76,9 @@ export default function Pessoas() {
 
   return (
     <>
-      <BackBar titulo="Pessoas" acao={<button className="iconbtn" onClick={() => setNova({})} aria-label="Nova"><Plus size={20} className="i" /></button>} />
-      <header className="hdr" style={{ paddingTop: 12, paddingBottom: 8 }}><div><p className="eyebrow">Quem cuida da casa</p><h1>Pessoas</h1></div></header>
-
-      <div className="px stats two">
-        <div className="stat"><p className="l" style={{ color: 'var(--ok)' }}>Pago no mês</p><p className="v num">{brl(jaPago)}</p></div>
-        <div className="stat"><p className="l">Pagamentos no mês</p><p className="v num">{pagamentosMes}</p></div>
-      </div>
+      <SectionHero chave="pessoas" g={SECOES.pessoas.g} Icon={SECOES.pessoas.Icon} titulo="Pessoas" subtitulo={`Quem trabalha na casa · ${pagamentosMes} pagamento${pagamentosMes !== 1 ? 's' : ''} no mês`} valor={brl(jaPago)}>
+        <div className="btnrow mt12"><button className="btn sm" onClick={() => setNova({})}><Plus size={15} className="i" />Nova pessoa</button></div>
+      </SectionHero>
 
       <div className="hscroll mt16">
         <button className={`pick ${filtro === 'todos' ? 'on' : ''}`} onClick={() => setFiltro('todos')}>Todos</button>
@@ -93,7 +92,7 @@ export default function Pessoas() {
         {lista.map(p => (
           <div key={p.id} className="card">
             <Link to={`/pessoas/${p.id}`} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <div className={`pill-av ${corAvatar(p)}`}>{iniciais(p.nome)}</div>
+              <div className="pill-av" style={{ background: degrade(SECOES.pessoas.g), color: '#fff' }}>{iniciais(p.nome)}</div>
               <div style={{ flex: 1, minWidth: 0 }}><h3>{p.nome}</h3><p className="sub">{p.funcao}</p></div>
               <div style={{ textAlign: 'right' }}>{p.valor_combinado ? <p style={{ fontWeight: 800 }} className="num">{brl(p.valor_combinado)}</p> : null}<p className="muted">{UNIDADE[p.unidade_valor] || p.frequencia || ''}</p><span className={`chip ${p.recorrente === false ? '' : 'pool'}`} style={{ marginTop: 4 }}>{p.recorrente === false ? 'Avulso' : 'Recorrente'}</span></div>
             </Link>
@@ -106,12 +105,13 @@ export default function Pessoas() {
             <div className="btnrow mt12">
               {tel(p) && <a className="btn sm wa" href={`https://wa.me/55${tel(p)}`} target="_blank" rel="noreferrer"><MessageCircle size={15} className="i" />WhatsApp</a>}
               {tel(p) && <a className="btn sm call" href={`tel:${tel(p)}`}><Phone size={15} className="i" />Ligar</a>}
-              <Link className="btn sm primary" to={`/pessoas/${p.id}`}>Pagar</Link>
+              <button className="btn sm primary" onClick={() => setPagar(p)}>Pagar</button>
             </div>
           </div>
         ))}
       </section>
       <div style={{ height: 12 }} />
+      {pagar && <FolhaPagamento pessoa={pagar} onFechar={() => setPagar(null)} onSalvo={recarregar} />}
       {nova && <FolhaPessoa inicial={nova} cats={cats} onFechar={() => setNova(null)} onSalvo={recarregar} />}
     </>
   )

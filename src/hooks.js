@@ -7,6 +7,8 @@ export function useDados(fn, deps = []) {
   const [erro, setErro] = useState(null)
   const recarregar = useCallback(() => { setErro(null); fn().then(setDados).catch(e => setErro(e.message)) }, deps) // eslint-disable-line
   useEffect(() => { recarregar() }, [recarregar])
+  // Qualquer gravação feita pela adição rápida avisa as telas abertas para recarregar
+  useEffect(() => { const h = () => recarregar(); window.addEventListener('gd:atualizar', h); return () => window.removeEventListener('gd:atualizar', h) }, [recarregar])
   return { dados, erro, recarregar }
 }
 
@@ -38,3 +40,6 @@ export const q = {
     return { manut, docs, estoque, contas, total: manut + docs + estoque + contas }
   },
 }
+
+// Avisa as telas abertas que os dados mudaram
+export const avisarMudanca = () => window.dispatchEvent(new Event('gd:atualizar'))

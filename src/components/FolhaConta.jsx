@@ -4,6 +4,7 @@ import { supabase } from '../supabase'
 import { Sheet } from './ui/Sheet'
 import { useToast } from './ui/Toast'
 import { CatTile } from '../lib/categoryStyle'
+import { temaCategoria, degrade } from '../lib/sectionThemes'
 import { brl, hoje, dataCurta, mascaraReais, exibirReais } from '../util'
 import { TIPOS_CONTA, STATUS_CONTA, statusConta, prazoTexto, catPorTipo, catPorNome, lerContaIA, guardarArquivo, pagarConta, desfazerPagamento } from '../lib/contas'
 import { abrirDocumento } from '../pages/Documentos'
@@ -18,7 +19,7 @@ export function ContaLinha({ c, onAbrir, onPagar }) {
   return (
     <div className={`conta-row st-${st}`}>
       <button type="button" className="conta-main" onClick={() => onAbrir(c)}>
-        <CatTile cat={c.categorias} size="md" />
+        {(() => { const tc = temaCategoria(c.categorias || { nome: c.tipo_conta }); return <span className="s-dot" style={{ background: degrade(tc.g) }}><tc.Icon size={18} /></span> })()}
         <div className="grow"><p className="t">{c.descricao}</p>
           <p className="s">{st === 'paga' ? `paga em ${dataCurta(c.pago_em)}` : `vence ${dataCurta(c.vencimento)} · ${prazoTexto(c)}`}</p></div>
         <b className="num">{brl(c.valor)}</b>

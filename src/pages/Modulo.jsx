@@ -3,8 +3,10 @@ import { Link, useParams, Navigate } from 'react-router-dom'
 import { Plus, Pencil, Trash2, Wrench, Package, ChevronRight } from 'lucide-react'
 import { supabase } from '../supabase'
 import { useDados, soma } from '../hooks'
-import { brl, dataCurta, diasAte, mesAtual } from '../util'
-import { BackBar } from '../components/ui/BackBar'
+import { brl, dataCurta, diasAte, mesAtual, hoje } from '../util'
+import { SectionHero, QuickAdd } from '../components/Secao'
+import { SECOES } from '../lib/sectionThemes'
+import { avisarMudanca } from '../hooks'
 import { Sheet } from '../components/ui/Sheet'
 import { useToast } from '../components/ui/Toast'
 import { MODULOS, temModulo } from '../lib/tipos'
@@ -17,6 +19,7 @@ import { useAcoesConta } from './Contas'
 export default function Modulo() {
   const { mod } = useParams()
   const { casa, podeEditar } = useCasa()
+  const toast = useToast()
   const def = MODULOS[mod]
   const [item, setItem] = useState(null)
   const { dados, recarregar } = useDados(async () => {
@@ -27,7 +30,7 @@ export default function Modulo() {
     const [itens, contas, gastos, manut, estoque] = await Promise.all([
       supabase.from('modulo_itens').select('*').eq('modulo', mod).eq('ativo', true).order('nome').then(r => r.data || [], () => []),
       ids.length ? supabase.from('contas').select('*, categorias(*)').in('categoria_id', ids).or(`pago_em.is.null,pago_em.gte.${m.ini}`).order('vencimento').then(r => r.data || []) : [],
-      ids.length ? supabase.from('despesas').select('valor').in('categoria_id', ids).gte('data', m.ini).lte('data', m.fim).then(r => r.data || []) : [],
+      ids.length ? supabase.from('despesas').select('id,valor,descricao,data').in('categoria_id', ids).gte('data', m.ini).lte('data', m.fim).then(r => r.data || []) : [],
       ids.length ? supabase.from('manutencoes').select('*').in('categoria_id', ids).eq('ativo', true).order('proxima').then(r => r.data || []) : [],
       ids.length ? supabase.from('estoque_itens').select('*').in('categoria_id', ids).eq('ativo', true).order('nome').then(r => r.data || []) : [],
     ])
@@ -39,16 +42,22 @@ export default function Modulo() {
   if (!dados) return <p className="carregando">Carregando…</p>
   const { cats, itens, contas, gastos, manut, estoque } = dados
   const Icone = ICONE_MOD[def.icone] || Wrench
+  const gastosLista = [...gastos].sort((a, b) => b.data.localeCompare(a.data)).slice(0, 8)
 
   return (
     <>
-      <BackBar titulo={def.nome} acao={def.item && podeEditar ? <button className="iconbtn" onClick={() => setItem({})} aria-label="Adicionar"><Plus size={20} className="i" /></button> : null} />
-      <header className="hdr" style={{ paddingTop: 12 }}>
-        <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-          <span className="tile t-lg c-piscina"><Icone size={26} className="i" /></span>
-          <div><h1 style={{ fontSize: 24 }}>{def.nome}</h1><p className="sub">{brl(soma(gastos))} gastos neste mês</p></div>
-        </div>
-      </header>
+      <SectionHero chave={mod} g={(SECOES[mod] || SECOES.categorias).g} Icon={(SECOES[mod] || {}).Icon || Icone} titulo={def.nome} subtitulo="Gastos e cuidados deste mês" valor={brl(soma(gastos))}>
+        {def.item && podeEditar && <div className="btnrow mt12"><button className="btn sm" onClick={() => setItem({})}><Plus size={15} className="i" />{def.item.rotulo}</button></div>}
+      </SectionHero>
+      {cats[0] && podeEditar && (<>
+        <div className="sec-h"><h2>Lançar em {def.nome}</h2></div>
+        <QuickAdd placeholder="Descrição" onSalvar={async (d, v) => {
+          if (!v) { toast({ txt: 'Informe o valor.', erro: true }); throw new Error('sem valor') }
+          await supabase.from('despesas').insert({ tipo: 'variavel', categoria_id: cats[0].id, descricao: d || def.nome, valor: v, data: hoje(), forma_pagamento: 'Pix', fotos: [] })
+          toast('Salvo'); recarregar()
+        }} />
+        <div className="px">{gastosLista.length > 0 && <div className="list" style={{ marginBottom: 6 }}>{gastosLista.map(g => <div key={g.id} className="row"><div className="grow"><p className="t">{g.descricao}</p><p className="s">{dataCurta(g.data)}</p></div><b className="num">{brl(g.valor)}</b></div>)}</div>}</div>
+      </>)}
 
       {def.item && (
         <section className="sec"><div className="sec-h"><h2>{def.item.rotulo === 'Pet' ? 'Pets' : def.item.rotulo === 'Veículo' ? 'Veículos' : def.item.rotulo + 's'}</h2>{podeEditar && <button className="link" onClick={() => setItem({})}>+ Adicionar</button>}</div>

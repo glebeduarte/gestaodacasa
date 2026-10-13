@@ -5,7 +5,9 @@ import { supabase } from '../supabase'
 import { useDados } from '../hooks'
 import { dataCurta, diasAte, somarDias, hoje, INTERVALOS, nomeIntervalo, numero } from '../util'
 import { CatTile } from '../lib/categoryStyle'
-import { BackBar } from '../components/ui/BackBar'
+import { SectionHero, QuickAdd } from '../components/Secao'
+import { SECOES } from '../lib/sectionThemes'
+import { avisarMudanca } from '../hooks'
 import { Sheet } from '../components/ui/Sheet'
 import { useToast } from '../components/ui/Toast'
 
@@ -53,8 +55,14 @@ export default function Manutencoes() {
 
   return (
     <>
-      <BackBar titulo="Manutenções" acao={<button className="iconbtn" onClick={() => setNovo({})} aria-label="Nova"><Plus size={20} className="i" /></button>} />
-      <header className="hdr" style={{ paddingTop: 12, paddingBottom: 8 }}><div><p className="eyebrow">Cuidados da casa</p><h1>Manutenções</h1></div></header>
+      <SectionHero chave="manutencoes" g={SECOES.manutencoes.g} Icon={SECOES.manutencoes.Icon} titulo="Manutenções" subtitulo="Lembretes do que precisa ser feito">
+        <div className="btnrow mt12"><button className="btn sm" onClick={() => setNovo({})}><Plus size={15} className="i" />Nova com detalhes</button></div>
+      </SectionHero>
+      <QuickAdd placeholder="Nova manutenção. Ex: trocar filtro (todo mês)" comValor={false} onSalvar={async (d) => {
+        if (!d) throw new Error('vazio')
+        await supabase.from('manutencoes').insert({ nome: d, intervalo_dias: 30, proxima: hoje(), ativo: true })
+        toast('Salvo'); recarregar()
+      }} />
 
       <div className="px"><div className="stats">
         <div className="stat"><p className="l">Atrasadas</p><p className="v" style={{ color: atrasadas.length ? 'var(--danger)' : 'var(--ink)' }}>{atrasadas.length}</p></div>

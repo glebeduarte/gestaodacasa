@@ -1,6 +1,9 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Hammer, Plus, Lightbulb, X, ListChecks } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Hammer, Plus, Lightbulb, X, ListChecks, Camera } from 'lucide-react'
+import { SectionHero } from '../components/Secao'
+import { SECOES, degrade } from '../lib/sectionThemes'
+import { useAdicionar } from '../components/Adicionar'
 import { supabase } from '../supabase'
 import { useDados, q, soma } from '../hooks'
 import { brl, brlCurto, dataCurta, semanasDesde, semanasTotal, numero, mascaraReais, exibirReais } from '../util'
@@ -11,6 +14,8 @@ const ABERTAS = ['orcamento_pendente', 'em_andamento', 'pausada']
 
 export default function Obras() {
   const [aba, setAba] = useState('todos')
+  const { abrir } = useAdicionar()
+  const nav = useNavigate()
   const [nova, setNova] = useState(false)
   const { dados, recarregar } = useDados(async () => {
     const [obras, cats, pessoas, despesas, itens] = await Promise.all([
@@ -32,15 +37,16 @@ export default function Obras() {
 
   return (
     <>
-      <header className="hdr"><div><p className="eyebrow">Reformas e reparos</p><h1>Obras</h1></div>
-        <button className="iconbtn" onClick={() => setNova(true)} aria-label="Nova obra"><Plus size={20} className="i" /></button></header>
+      <SectionHero chave="obras" g={SECOES.obras.g} Icon={SECOES.obras.Icon} titulo="Obras" subtitulo="Orçamento, prazo e quanto já foi pago">
+        <div className="btnrow mt12"><button className="btn sm" onClick={() => setNova(true)}><Plus size={15} className="i" />Nova obra</button></div>
+      </SectionHero>
+      <div className="s-note">💡 Toda obra começa com 3 coisas: responsável, orçamento por escrito e prazo.</div>
 
       <div className="px"><div className="seg">
         <button className={aba === 'todos' ? 'on' : ''} onClick={() => setAba('todos')}>Todos · {todas.length}</button>
         <button className={aba === 'sem' ? 'on' : ''} onClick={() => setAba('sem')}>Sem pagamentos · {semPagamento.length}</button>
       </div></div>
 
-      {aba === 'todos' && <div className="px mt16"><div className="tip"><Lightbulb size={20} className="i" style={{ color: 'var(--pool)' }} /><div><p className="t">Registre antes de pagar</p><p className="s">Mesmo sem orçamento, anote o que foi combinado, o prazo e quem é o responsável.</p></div></div></div>}
 
       <section className="px mt16 stack-y">
         {lista.length === 0 && <div className="tip"><p className="s" style={{ marginTop: 0 }}>{aba === 'todos' ? 'Nenhuma obra cadastrada. Toque em nova obra para começar a acompanhar uma reforma.' : 'Todas as obras já receberam algum pagamento.'}</p></div>}
@@ -61,8 +67,9 @@ export default function Obras() {
                   : o.status === 'cancelada' ? <span className="chip danger">Cancelada</span>
                   : o.status === 'pausada' ? <span className="chip">Pausada</span>
                   : o.orcamento_total ? <span className="chip pool">{totalSem ? `Semana ${sem}/${totalSem}` : 'Em andamento'}</span>
-                    : <span className="chip warn">Sem orçamento</span>}
+                    : <span className="chip">Em andamento</span>}
               </div>
+              <div className="chips mt8"><span className={`chip ${o.orcamento_total ? 'ok' : 'danger'}`}>{o.orcamento_total ? 'Com orçamento' : 'Sem orçamento'}</span>{!o.pessoas && <span className="chip">Sem responsável</span>}{!o.prazo_previsto && <span className="chip">Sem prazo</span>}</div>
               {its.length > 0 && <div className="mt12"><div className="barlabel"><span><ListChecks size={14} className="i" style={{ verticalAlign: -2 }} /> Checklist</span><b>{feitos} de {its.length}</b></div><div className="bar"><i style={{ width: Math.round(feitos / its.length * 100) + '%', '--b': 'var(--ok)' }} /></div></div>}
               {o.orcamento_total ? (<>
                 <div className="stats mt16">
@@ -71,11 +78,15 @@ export default function Obras() {
                   <div className="stat" style={{ boxShadow: 'none', background: 'var(--surface-2)' }}><p className="l">Falta pagar</p><p className="v num" style={{ color: pago > o.orcamento_total ? 'var(--danger)' : 'inherit' }}>{pago > o.orcamento_total ? `+${brlCurto(pago - o.orcamento_total)}` : brlCurto(o.orcamento_total - pago)}</p></div>
                 </div>
                 {pctTempo !== null && <div className="mt12"><div className="barlabel"><span>Tempo</span><b>{pctTempo}%</b></div><div className="bar"><i style={{ width: pctTempo + '%', '--b': 'var(--pool)' }} /></div></div>}
-                <div className="mt8"><div className="barlabel"><span>Dinheiro</span><b>{pctDinheiro}%</b></div><div className="bar"><i style={{ width: pctDinheiro + '%', '--b': 'var(--warn)' }} /></div></div>
+                <div className="mt8"><div className="barlabel"><span>Dinheiro</span><b>{pctDinheiro}%</b></div><div className="bar"><i style={{ width: pctDinheiro + '%', '--b': degrade(SECOES.obras.g) }} /></div></div>
               </>) : (<>
                 <div className="note mt12"><b>{o.combinado_verbal ? 'Combinado só de boca' : 'Sem orçamento'}</b>Peça um orçamento escrito antes do próximo pagamento.</div>
                 <div className="mt12"><div className="barlabel"><span>Pago até agora</span><b className="num">{brl(pago)}</b></div><div className="bar"><i style={{ width: pago ? '30%' : '4%', '--b': 'var(--muted)' }} /></div></div>
               </>)}
+              <div className="obra-acoes" onClick={e => e.preventDefault()}>
+                <button className="link" onClick={e => { e.preventDefault(); e.stopPropagation(); abrir({ tipo: 'obra', obra_id: o.id }) }}><Plus size={15} className="i" />Pagamento</button>
+                <button className="link" onClick={e => { e.preventDefault(); e.stopPropagation(); nav(`/obras/${o.id}?orcamento=1`) }}><Camera size={15} className="i" />Orçamento</button>
+              </div>
             </Link>
           )
         })}

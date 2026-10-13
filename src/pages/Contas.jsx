@@ -4,7 +4,11 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../supabase'
 import { useDados, soma } from '../hooks'
 import { brl, mesAtual } from '../util'
-import { BackBar } from '../components/ui/BackBar'
+import { SectionHero, QuickAdd } from '../components/Secao'
+import { SECOES } from '../lib/sectionThemes'
+import { pagarConta } from '../lib/contas'
+import { hoje } from '../util'
+import { useToast } from '../components/ui/Toast'
 import { ContaLinha, FolhaConta, FolhaVerConta, FolhaPagarConta } from '../components/FolhaConta'
 import { statusConta, gerarContasMes, TIPOS_CONTA } from '../lib/contas'
 
@@ -32,6 +36,7 @@ export default function Contas() {
     return { contas: r.data || [] }
   })
   const acoes = useAcoesConta(recarregar)
+  const toast = useToast()
   if (!dados) return <p className="carregando">Carregando…</p>
   const m = mesAtual()
   const contas = dados.contas.map(c => ({ ...c, st: statusConta(c) }))
@@ -43,14 +48,22 @@ export default function Contas() {
 
   return (
     <>
-      <BackBar titulo="Contas" acao={<button className="iconbtn" onClick={() => acoes.abrirNova()} aria-label="Nova conta"><Plus size={20} className="i" /></button>} />
-      <header className="hdr" style={{ paddingTop: 12, paddingBottom: 8 }}><div><p className="eyebrow">Luz, água, internet e afins</p><h1>Contas da casa</h1></div><Link className="btn sm soft" to="/importar"><FileUp size={15} className="i" />Importar extrato</Link></header>
+      <SectionHero chave="contas" g={SECOES.contas.g} Icon={SECOES.contas.Icon} titulo="Contas da casa" subtitulo="Luz, água, internet e afins do mês" valor={brl(soma(pagasMes) + soma(avencer) + soma(atrasadas))}>
+        <div className="btnrow mt12"><button className="btn sm" onClick={() => acoes.abrirNova()}><Plus size={15} className="i" />Por foto ou manual</button><Link className="btn sm" to="/importar"><FileUp size={15} className="i" />Importar extrato</Link></div>
+      </SectionHero>
 
-      <div className="px stats">
-        <div className="stat"><p className="l" style={{ color: 'var(--danger)' }}>Atrasadas</p><p className="v num">{brl(soma(atrasadas))}</p><p className="muted">{atrasadas.length} conta{atrasadas.length !== 1 ? 's' : ''}</p></div>
-        <div className="stat"><p className="l">A vencer</p><p className="v num">{brl(soma(avencer))}</p><p className="muted">{avencer.length} conta{avencer.length !== 1 ? 's' : ''}</p></div>
-        <div className="stat"><p className="l" style={{ color: 'var(--ok)' }}>Pagas no mês</p><p className="v num">{brl(soma(pagasMes))}</p><p className="muted">{pagasMes.length} conta{pagasMes.length !== 1 ? 's' : ''}</p></div>
+      <div className="s-stats">
+        <div className="stat"><span>Atrasadas</span><b className="num" style={{ color: 'var(--danger)' }}>{brl(soma(atrasadas))}</b><p className="muted">{atrasadas.length} conta{atrasadas.length !== 1 ? 's' : ''}</p></div>
+        <div className="stat"><span>A vencer</span><b className="num">{brl(soma(avencer))}</b><p className="muted">{avencer.length} conta{avencer.length !== 1 ? 's' : ''}</p></div>
+        <div className="stat"><span>Pagas</span><b className="num" style={{ color: 'var(--ok)' }}>{brl(soma(pagasMes))}</b><p className="muted">{pagasMes.length} conta{pagasMes.length !== 1 ? 's' : ''}</p></div>
       </div>
+
+      <div className="sec-h mt24"><h2>Nova conta</h2></div>
+      <QuickAdd placeholder="Nome da conta (já paga hoje)" onSalvar={async (d, v) => {
+        if (!v) { toast({ txt: 'Informe o valor.', erro: true }); throw new Error('sem valor') }
+        const { data: c } = await supabase.from('contas').insert({ tipo_conta: 'outro', descricao: d || 'Conta', valor: v, vencimento: hoje(), referencia: `${hoje().slice(0, 7)}-01`, origem: 'manual', detalhes: {} }).select('*').single()
+        await pagarConta(c, hoje(), 'Pix'); toast('Salvo'); recarregar()
+      }} />
 
       <div className="px mt16"><div className="seg">
         <button className={aba === 'abertas' ? 'on' : ''} onClick={() => setAba('abertas')}>Em aberto · {atrasadas.length + avencer.length}</button>
