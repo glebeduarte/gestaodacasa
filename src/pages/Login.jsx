@@ -19,7 +19,11 @@ export default function Login({ modoInicial = 'entrar', onVoltar }) {
       if (senha.length < 6) { setErro('A senha precisa ter pelo menos 6 caracteres.'); setOcupado(false); return }
       const { data, error } = await supabase.auth.signUp({ email, password: senha, options: { data: { nome: nome.trim() }, emailRedirectTo: window.location.origin } })
       if (error) setErro(/registered|already/i.test(error.message) ? 'Já existe uma conta com este e-mail. Use "Entrar".' : error.message)
-      else if (!data.session) setAviso('Conta criada. Enviamos um link de confirmação para o seu e-mail; depois é só entrar.')
+      else if (!data.session) {
+        // e-mail é confirmado automaticamente no banco; entra direto
+        const r = await supabase.auth.signInWithPassword({ email, password: senha })
+        if (r.error) setErro(data.user?.identities?.length === 0 ? 'Já existe uma conta com este e-mail. Use "Entrar" ou "Esqueci a senha".' : 'Conta criada, mas não foi possível entrar agora. Tente "Entrar".')
+      }
     } else {
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
       if (error) setErro(error.message); else setAviso('Se o e-mail estiver cadastrado, você vai receber um link para criar uma nova senha.')
