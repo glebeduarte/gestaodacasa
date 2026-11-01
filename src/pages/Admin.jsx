@@ -121,12 +121,8 @@ export default function Admin({ sessao }) {
         </div></div>
       </section>
 
-      <section className="sec"><div className="sec-h"><h2>Quem usa</h2></div>
-        <div className="px"><div className="list">
-          <div className="row"><div className="avatar" style={{ width: 40, height: 40, boxShadow: 'none' }}>H</div><div className="grow"><p className="t">Hylana</p><p className="s">hylanaenf@gmail.com</p></div></div>
-          <div className="row"><div className="avatar" style={{ width: 40, height: 40, boxShadow: 'none', background: 'linear-gradient(135deg,#7FA3C2,#44607C)' }}>G</div><div className="grow"><p className="t">Glebe</p><p className="s">glebejr@gmail.com</p></div></div>
-        </div>
-        <button className="btn ghost block mt12" style={{ color: 'var(--danger)' }} onClick={() => supabase.auth.signOut()}><LogOut size={18} className="i" />Sair</button></div>
+      <section className="sec">
+        <div className="px"><button className="btn ghost block mt12" style={{ color: 'var(--danger)' }} onClick={() => supabase.auth.signOut()}><LogOut size={18} className="i" />Sair</button></div>
       </section>
       <div style={{ height: 12 }} />
 
