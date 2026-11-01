@@ -26,6 +26,7 @@ const C = {
   animais: ['Animais', 'PawPrint', 'c-hanna'],
   insumos: ['Insumos e plantio', 'Leaf', 'c-estoque'],
   caseiro: ['Caseiro', 'Home', 'c-diaristas'],
+  moradia: ['Moradia', 'Home', 'c-docs'],
 }
 
 // Módulos: o que aparece no menu e o que é criado quando o módulo é ligado
@@ -90,19 +91,19 @@ export const MODULOS = {
 export const TIPOS_CASA = {
   residencial: {
     nome: 'Casa residencial', icone: 'Home', desc: 'Casa de rua, com quintal e estrutura própria.',
-    categorias: [C.energia, C.agua, C.gas, C.internet, C.estrutura, C.mercado, C.saude, C.cartao, C.limpeza, C.iptu],
+    categorias: [C.moradia, C.energia, C.agua, C.gas, C.internet, C.estrutura, C.mercado, C.saude, C.cartao, C.limpeza, C.iptu],
     modulos: ['pessoas', 'obras', 'manutencoes', 'estoque'],
     manutencoes: [["Limpar caixa d'água", 180, 'Água'], ['Dedetização', 180, 'Estrutura e reparos'], ['Limpar calhas', 90, 'Estrutura e reparos'], ['Revisar ar-condicionado', 180, 'Energia'], ['Revisão elétrica', 365, 'Energia']],
   },
   condominio: {
     nome: 'Casa em condomínio', icone: 'Building2', desc: 'Casa com taxa de condomínio, portaria e áreas comuns.',
-    categorias: [C.energia, C.agua, C.gas, C.internet, C.estrutura, C.mercado, C.saude, C.cartao, C.limpeza, C.condominio, C.iptu],
+    categorias: [C.moradia, C.energia, C.agua, C.gas, C.internet, C.estrutura, C.mercado, C.saude, C.cartao, C.limpeza, C.condominio, C.iptu],
     modulos: ['pessoas', 'obras', 'manutencoes', 'estoque', 'condominio'],
     manutencoes: [["Limpar caixa d'água", 180, 'Água'], ['Dedetização', 180, 'Estrutura e reparos'], ['Revisar ar-condicionado', 180, 'Energia']],
   },
   apartamento: {
     nome: 'Apartamento', icone: 'Building', desc: 'Sem área externa; condomínio cuida das áreas comuns.',
-    categorias: [C.energia, C.gas, C.internet, C.condominio, C.iptu, C.mercado, C.saude, C.cartao, C.limpeza],
+    categorias: [C.moradia, C.energia, C.gas, C.internet, C.condominio, C.iptu, C.mercado, C.saude, C.cartao, C.limpeza],
     modulos: ['condominio', 'manutencoes', 'estoque'],
     manutencoes: [['Revisar ar-condicionado', 180, 'Energia'], ['Trocar filtro de água', 180, 'Mercado'], ['Vistoria do gás', 365, 'Gás']],
   },

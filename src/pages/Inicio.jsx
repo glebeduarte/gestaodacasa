@@ -13,7 +13,7 @@ import { SECOES, degrade, temaCategoria } from '../lib/sectionThemes'
 import { avisarMudanca } from '../hooks'
 import { ContaLinha } from '../components/FolhaConta'
 import { useAcoesConta } from './Contas'
-import { statusConta, gerarContasMes } from '../lib/contas'
+import { statusConta, gerarContasMes, avisosAluguel } from '../lib/contas'
 import { Plus } from 'lucide-react'
 
 export default function Inicio({ sessao }) {
@@ -25,18 +25,19 @@ export default function Inicio({ sessao }) {
     const em7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10)
     const hj = new Date().toISOString().slice(0, 10)
     await gerarContasMes()
-    const [categorias, despesas, obras, fixos, pessoas, manut, estoque, contas] = await Promise.all([
+    const [categorias, despesas, obras, fixos, pessoas, manut, estoque, contas, aluguel] = await Promise.all([
       q.categorias(), q.despesasMes(), q.obras(), q.custosFixos(), q.pessoas(),
       supabase.from('manutencoes').select('id,nome,proxima,categoria_id').eq('ativo', true).not('proxima', 'is', null).lte('proxima', em7).order('proxima').then(r => r.data || []),
       supabase.from('estoque_itens').select('id,nome,quantidade,minimo,categoria_id').eq('ativo', true).then(r => (r.data || []).filter(e => Number(e.quantidade) <= Number(e.minimo))),
       supabase.from('contas').select('*, categorias(*)').or(`pago_em.is.null,pago_em.gte.${mesAtual().ini}`).order('vencimento').then(r => r.data || [], () => []),
+      avisosAluguel().catch(() => []),
     ])
-    return { categorias, despesas, obras, fixos, pessoas, manut, estoque, contas, hj }
+    return { categorias, despesas, obras, fixos, pessoas, manut, estoque, contas, aluguel, hj }
   })
   const mes = mesAtual()
   const acoesConta = useAcoesConta(recarregar)
   if (!dados) return <p className="carregando">Carregando…</p>
-  const { categorias, despesas, obras, fixos, manut, estoque, contas, hj } = dados
+  const { categorias, despesas, obras, fixos, manut, estoque, contas, aluguel = [], hj } = dados
   const cAtras = contas.filter(c => statusConta(c) === 'atrasada')
   const cVencer = contas.filter(c => statusConta(c) === 'avencer')
   const cPagas = contas.filter(c => statusConta(c) === 'paga')
@@ -56,6 +57,7 @@ export default function Inicio({ sessao }) {
     const cat = categorias.find(c => c.id === fx.categoria_id)
     alertas.push({ k: 'danger', cat, texto: `${fx.descricao} vence dia ${fx.dia_vencimento}`, sub: `${cat?.nome || ''} · ${brl(fx.valor)}`, acao: 'pagar', fx })
   })
+  aluguel.forEach(a => alertas.push({ k: a.texto.includes('passou') || a.texto.includes('vencido') ? 'danger' : 'warn', cat: categorias.find(c => c.nome === 'Moradia'), texto: a.texto, sub: a.sub, acao: 'ver-contas' }))
   estoque.forEach(e => { const cat = categorias.find(c => c.id === e.categoria_id); alertas.push({ k: 'warn', cat, texto: `${e.nome} está acabando`, sub: `Resta ${Number(e.quantidade)} · mínimo ${Number(e.minimo)}`, acao: 'comprar' }) })
   manut.forEach(m => { const cat = categorias.find(c => c.id === m.categoria_id); const atras = m.proxima < hj; alertas.push({ k: atras ? 'danger' : 'pool', cat, ic: 'wrench', texto: m.nome, sub: atras ? 'Manutenção atrasada' : `Manutenção ${dataCurta(m.proxima)}`, acao: 'ver-manut' }) })
   const ordem = { danger: 0, warn: 1, pool: 2, ok: 3 }
@@ -107,6 +109,7 @@ export default function Inicio({ sessao }) {
                 {a.acao === 'pagar' && <button className="btn sm dark" onClick={() => pagarFixo(a.fx)}>Paguei</button>}
                 {a.acao === 'comprar' && <Link className="btn sm soft" to="/estoque">Comprar</Link>}
                 {a.acao === 'ver-manut' && <Link className="btn sm" to="/manutencoes">Ver</Link>}
+                {a.acao === 'ver-contas' && <Link className="btn sm" to="/contas">Ver</Link>}
               </div>
             ))}
           </div>

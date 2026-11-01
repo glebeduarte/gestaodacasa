@@ -1,4 +1,4 @@
-import { supabase } from '../supabase'
+import { supabase, semAviso } from '../supabase'
 import { hoje, diasAte } from '../util'
 
 // Tipos de conta e os campos específicos de cada um (ficam em contas.detalhes)
@@ -12,6 +12,7 @@ export const TIPOS_CONTA = {
   condominio: { nome: 'Condomínio', cat: ['condominio', 'estrutura'], campos: [['unidade', 'Unidade'], ['parcela', 'Parcela']] },
   iptu: { nome: 'IPTU', cat: ['iptu', 'estrutura'], campos: [['inscricao', 'Inscrição'], ['parcela', 'Parcela']] },
   seguro: { nome: 'Seguro', cat: ['seguro', 'estrutura'], campos: [['apolice', 'Apólice'], ['parcela', 'Parcela']] },
+  aluguel: { nome: 'Aluguel', cat: ['moradia', 'aluguel'], campos: [['locador', 'Locador ou imobiliária'], ['contrato', 'Nº do contrato'], ['indice', 'Índice de reajuste'], ['reajuste', 'Próximo reajuste', 'data'], ['fim_contrato', 'Fim do contrato', 'data']] },
   outro: { nome: 'Outra', cat: [], campos: [] },
 }
 
@@ -42,7 +43,31 @@ export function prazoTexto(c) {
 }
 
 // Gera as contas do mês a partir dos custos fixos (idempotente)
-export const gerarContasMes = () => supabase.rpc('gerar_contas_mes').then(() => null, () => null)
+export const gerarContasMes = () => supabase.rpc('gerar_contas_mes').then(ajustarAluguel, () => null)
+
+// Contas geradas de custo fixo com "aluguel" no nome viram tipo Aluguel e herdam os dados do contrato
+async function ajustarAluguel() {
+  try {
+    const { data } = await semAviso('contas').select('id,tipo_conta,descricao,detalhes,vencimento').ilike('descricao', '%aluguel%').order('vencimento', { ascending: false }).limit(24)
+    const l = data || []
+    const base = l.find(c => c.tipo_conta === 'aluguel' && Object.keys(c.detalhes || {}).length)
+    for (const c of l.filter(c => c.tipo_conta === 'outro')) {
+      await semAviso('contas').update({ tipo_conta: 'aluguel', detalhes: { ...(base?.detalhes || {}), ...(c.detalhes || {}) } }).eq('id', c.id)
+    }
+  } catch { /* sem efeito se falhar */ }
+  return null
+}
+
+// Avisos de reajuste e fim de contrato do aluguel (próximos 45 dias ou vencidos)
+export async function avisosAluguel() {
+  const { data } = await supabase.from('contas').select('descricao,detalhes,vencimento').eq('tipo_conta', 'aluguel').order('vencimento', { ascending: false }).limit(1)
+  const d = data?.[0]?.detalhes || {}
+  const out = []
+  const dias = (s) => Math.round((new Date(s + 'T12:00') - new Date(hoje() + 'T12:00')) / 864e5)
+  if (d.reajuste) { const n = dias(d.reajuste); if (n <= 45) out.push({ texto: n < 0 ? 'Reajuste do aluguel já passou' : `Reajuste do aluguel em ${n} dia${n !== 1 ? 's' : ''}`, sub: `${d.indice || 'Índice não informado'} · ${d.reajuste.split('-').reverse().join('/')}` }) }
+  if (d.fim_contrato) { const n = dias(d.fim_contrato); if (n <= 45) out.push({ texto: n < 0 ? 'Contrato de aluguel vencido' : `Contrato de aluguel termina em ${n} dia${n !== 1 ? 's' : ''}`, sub: d.locador || d.fim_contrato.split('-').reverse().join('/') }) }
+  return out
+}
 
 const UNID = { consumo_kwh: 'kWh', consumo_m3: 'm³', consumo_kg: 'kg' }
 

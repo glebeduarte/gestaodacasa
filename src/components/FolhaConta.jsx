@@ -60,7 +60,7 @@ export function FolhaVerConta({ conta: c, onFechar, onSalvo, onEditar }) {
   const st = statusConta(c)
   const tipo = TIPOS_CONTA[c.tipo_conta] || TIPOS_CONTA.outro
   const det = c.detalhes || {}
-  const extras = [...tipo.campos.filter(([k]) => det[k] != null && det[k] !== '').map(([k, l]) => [l, det[k]]),
+  const extras = [...tipo.campos.filter(([k]) => det[k] != null && det[k] !== '').map(([k, l]) => [l, /^\d{4}-\d{2}-\d{2}$/.test(det[k]) ? det[k].split('-').reverse().join('/') : det[k]]),
     ...Object.entries(det).filter(([k, v]) => !tipo.campos.some(([x]) => x === k) && v != null && v !== '' && typeof v !== 'object').map(([k, v]) => [k.replace(/_/g, ' '), v])]
   const copiar = (t) => { navigator.clipboard?.writeText(t); toast('Copiado') }
   const excluir = async () => {
@@ -126,7 +126,13 @@ export function FolhaConta({ inicial, onFechar, onSalvo }) {
 
   useEffect(() => { supabase.from('categorias').select('id,nome,cor,icone').eq('ativo', true).order('ordem').then(r => setCats(r.data || [])) }, [])
 
-  const escolherTipo = (t) => setF(x => ({ ...x, tipo_conta: t, categoria_id: x.categoria_id || catPorTipo(t, cats)?.id || '' }))
+  const escolherTipo = async (t) => {
+    let c = catPorTipo(t, cats)
+    if (!c && t === 'aluguel') {
+      try { const { data } = await supabase.from('categorias').insert({ nome: 'Moradia', icone: 'Home', cor: 'c-docs', ativo: true, ordem: 0 }).select('id,nome,cor,icone').single(); c = data; setCats(l => [...l, data]) } catch { /* segue sem categoria */ }
+    }
+    setF(x => ({ ...x, tipo_conta: t, categoria_id: x.categoria_id || c?.id || '' }))
+  }
 
   const ler = async (file) => {
     if (!file) return
@@ -248,7 +254,7 @@ export function FolhaConta({ inicial, onFechar, onSalvo }) {
           {tipo.campos.length > 0 && (
             <div className="field"><span className="l">Dados da conta de {tipo.nome.toLowerCase()}</span>
               <div className="det-grid">{tipo.campos.map(([k, l, t]) => (
-                <label key={k} className="field"><span className="l" style={{ fontSize: 11 }}>{l}</span><input className="input" inputMode={t === 'num' ? 'decimal' : 'text'} value={f.detalhes[k] ?? ''} onChange={e => setDet(k, e.target.value)} /></label>
+                <label key={k} className="field"><span className="l" style={{ fontSize: 11 }}>{l}</span><input className="input" type={t === 'data' ? 'date' : 'text'} inputMode={t === 'num' ? 'decimal' : undefined} value={f.detalhes[k] ?? ''} onChange={e => setDet(k, e.target.value)} /></label>
               ))}</div></div>
           )}
 

@@ -29,6 +29,7 @@ export const SECOES = {
   cartao: { nome: 'Cartão de Crédito', Icon: CreditCard, g: ['#4b2f8f', '#8a6fd6'] },
   gas: { nome: 'Gás', Icon: Flame, g: ['#b4541e', '#f0a050'] },
   mercado: { nome: 'Mercado', Icon: Utensils, g: ['#1f7a4d', '#6cc28a'] },
+  moradia: { nome: 'Moradia', Icon: Home, g: ['#3d4f8f', '#7d93d6'] },
   seguranca: { nome: 'Segurança', Icon: ShieldCheck, g: ['#24507d', '#5f8fc4'] },
 }
 
@@ -36,7 +37,7 @@ export const SECOES = {
 const PALETA = [['#0a5d93', '#2bb7dc'], ['#1f7a4d', '#6cc28a'], ['#b4541e', '#f0a050'], ['#5b3fa0', '#9a7fe0'], ['#a33e6b', '#e88ab0'], ['#7a5a2e', '#c9a46a'], ['#24507d', '#5f8fc4'], ['#4a5a6a', '#8fa3b5'], ['#0583a8', '#3fd0e8'], ['#b43a4f', '#ef8a9a']]
 
 const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
-const PALAVRAS = [['energia', 'energia'], ['luz', 'energia'], ['agua', 'agua'], ['poco', 'agua'], ['piscina', 'piscina'], ['jardim', 'jardim'], ['estrutura', 'estrutura'], ['reparo', 'estrutura'], ['diarista', 'diaristas'], ['limpeza', 'diaristas'], ['funcionari', 'diaristas'], ['caseiro', 'diaristas'], ['saude', 'saude'], ['internet', 'internet'], ['tv', 'internet'], ['cartao', 'cartao'], ['gas', 'gas'], ['combust', 'gas'], ['mercado', 'mercado'], ['pet', 'pets'], ['hanna', 'pets'], ['animai', 'pets'], ['obra', 'obras'], ['reforma', 'obras'], ['condominio', 'condominio'], ['iptu', 'documentos'], ['taxa', 'documentos'], ['seguranca', 'seguranca'], ['veiculo', 'veiculos'], ['racao', 'jardim'], ['insumo', 'estoque']]
+const PALAVRAS = [['aluguel', 'moradia'], ['moradia', 'moradia'], ['energia', 'energia'], ['luz', 'energia'], ['agua', 'agua'], ['poco', 'agua'], ['piscina', 'piscina'], ['jardim', 'jardim'], ['estrutura', 'estrutura'], ['reparo', 'estrutura'], ['diarista', 'diaristas'], ['limpeza', 'diaristas'], ['funcionari', 'diaristas'], ['caseiro', 'diaristas'], ['saude', 'saude'], ['internet', 'internet'], ['tv', 'internet'], ['cartao', 'cartao'], ['gas', 'gas'], ['combust', 'gas'], ['mercado', 'mercado'], ['pet', 'pets'], ['hanna', 'pets'], ['animai', 'pets'], ['obra', 'obras'], ['reforma', 'obras'], ['condominio', 'condominio'], ['iptu', 'documentos'], ['taxa', 'documentos'], ['seguranca', 'seguranca'], ['veiculo', 'veiculos'], ['racao', 'jardim'], ['insumo', 'estoque']]
 
 // Chave visual de uma categoria (pelo nome); categorias sem correspondência recebem cor por índice
 export function chaveCategoria(cat) {
