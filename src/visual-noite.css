@@ -108,3 +108,31 @@ html.v2 :is(.v2-cascata,.list,.stack-y)>*:nth-child(6){animation-delay:.3s}
 html.v2 :is(.v2-cascata,.list,.stack-y)>*:nth-child(n+7){animation-delay:.36s}
 html.v2 .sec-h h2{animation:v2-sobe .6s cubic-bezier(.2,.8,.2,1) both}
 @media (prefers-reduced-motion:reduce){html.v2 *{animation:none!important}}
+
+/* ===== Modo claro do mesmo visual ===== */
+html.v2.claro body{
+  --bg-out:#EEEFE7;--surface:rgba(255,255,255,.62);--surface-2:rgba(255,255,255,.45);
+  --ink:#1D1E16;--ink-2:#55574A;--muted:#85877A;--line:rgba(30,32,20,.09);
+  --primary:#4F6B12;--pool:#4F6B12;--pool-soft:rgba(110,150,20,.12);--aegean:#F4F5EE;
+  --ok:#2E8A4E;--ok-soft:#E3F2E7;--warn:#A9740B;--warn-soft:#FBF0D6;--danger:#C2543A;--danger-soft:#FBE7E1;
+  --v2-ac:#C9F24A;--v2-ac2:#C9A23A;--v2-ac-txt:#4F6B12;
+  --shadow:0 1px 0 rgba(255,255,255,.8) inset,0 10px 30px -14px rgba(60,60,30,.22);
+  background:#EEEFE7;color:var(--ink)}
+html.v2.claro body::before{background:radial-gradient(40% 35% at 75% 15%,rgba(214,226,160,.7),transparent 70%),radial-gradient(35% 40% at 10% 80%,rgba(220,210,180,.7),transparent 70%),radial-gradient(30% 30% at 50% 50%,rgba(255,255,255,.8),transparent 70%),#EEEFE7}
+html.v2.claro .sheet-wrap{background:rgba(250,250,245,.95)}
+html.v2.claro .sheet-bg{background:rgba(30,32,20,.35)}
+html.v2.claro .desk-side{background:rgba(255,255,255,.5)!important;color:var(--ink)}
+html.v2.claro .desk-side .logo,html.v2.claro .desk-side .side-user p{color:var(--ink)}
+html.v2.claro .desk-side .casa-switch{color:var(--ink);background:rgba(255,255,255,.6)}
+html.v2.claro .desk-side .casa-switch small,html.v2.claro .desk-side .side-user small,html.v2.claro .desk-side .sair{color:var(--muted)}
+html.v2.claro .desk-side .side-sep{background:var(--line)}
+html.v2.claro .nav{background:rgba(255,255,255,.82)}
+html.v2.claro .nav a.on,html.v2.claro .hello small,html.v2.claro .v2-painel-txt small,html.v2.claro .sec-h a{color:var(--v2-ac-txt)}
+html.v2.claro .tile{background:rgba(30,32,20,.06)}
+html.v2.claro .bar,html.v2.claro .seg{background:rgba(30,32,20,.07)}
+html.v2.claro .v2-gauge .trk{stroke:rgba(30,32,20,.08)}
+html.v2.claro .v2-gauge .tick{stroke:rgba(30,32,20,.25)}
+html.v2.claro .v2-gauge .ptr{stroke:#1D1E16}
+html.v2.claro .v2-gauge .hub{fill:#1D1E16}
+html.v2.claro .v2-pill i{background:#C9F24A}
+html.v2.claro .s-hero .s-grad{mix-blend-mode:normal;opacity:.9}

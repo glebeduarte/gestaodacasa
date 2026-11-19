@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useVisualApp } from './lib/visual'
 import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
 import { supabase } from './supabase'
 import { Home, LayoutGrid, Plus, Hammer, Menu, Users, Wrench, FileText, Package, BarChart3, Settings, LogOut, History, Receipt, ArrowLeftRight, ChevronDown, FileBarChart } from 'lucide-react'
@@ -169,6 +170,7 @@ export default function App() {
 
 function Rotas({ sessao }) {
   const { casas, casa } = useCasa()
+  useVisualApp()
   if (casas === null) return <div className="carregando">Carregando…</div>
   if (!casa) return (
     <div className="app sem-casa"><main className="desk-main"><div className="inner-wrap">

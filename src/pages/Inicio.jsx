@@ -20,7 +20,7 @@ import { Conta, Medidor } from '../components/Anim'
 
 export default function Inicio({ sessao }) {
   const toast = useToast()
-  const { noite, alternar } = useVisual()
+  const { noite, claro, alternar } = useVisual()
   const { casa } = useCasa()
   const mods = casa?.modulos || []
   const email = sessao?.user?.email
@@ -83,7 +83,7 @@ export default function Inicio({ sessao }) {
     <>
       <div className="hello">
         <div><small>{casa?.nome} · {dataExtenso()}</small><h1>{saudacao()}{email ? `, ${nomeUsuario(sessao.user)}` : ''}</h1></div>
-        <div className="v2-hello-r"><button className="v2-toggle" onClick={alternar} title="Alternar visual">{noite ? <Sun size={16} /> : <Moon size={16} />}<span>{noite ? 'Visual padrão' : 'Testar visual novo'}</span></button><span className="avatar">{iniciais(nomeUsuario(sessao?.user))}</span></div>
+        <div className="v2-hello-r"><button className="v2-toggle" onClick={alternar} title={claro ? 'Mudar para modo escuro' : 'Mudar para modo claro'}>{claro ? <Moon size={16} /> : <Sun size={16} />}<span>{claro ? 'Modo escuro' : 'Modo claro'}</span></button><span className="avatar">{iniciais(nomeUsuario(sessao?.user))}</span></div>
       </div>
 
       {noite ? (
