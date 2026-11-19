@@ -4,6 +4,8 @@ import { useDados, soma } from '../hooks'
 import { brl, dataCurta } from '../util'
 import { CatTile } from '../lib/categoryStyle'
 import { BackBar } from '../components/ui/BackBar'
+import { SectionHero } from '../components/Secao'
+import { SECOES } from '../lib/sectionThemes'
 import { FolhaEditarDespesa } from '../components/FolhaEditarDespesa'
 
 export default function Registros() {
@@ -25,7 +27,7 @@ export default function Registros() {
   return (
     <>
       <BackBar titulo="Histórico" />
-      <header className="hdr" style={{ paddingTop: 12, paddingBottom: 8 }}><div><p className="eyebrow">Tudo que foi registrado</p><h1>Histórico</h1></div></header>
+      <SectionHero chave="historico" g={SECOES.historico.g} Icon={SECOES.historico.Icon} titulo="Histórico" subtitulo="Tudo que foi registrado" />
       <div className="hscroll">{filtros.map(([v, t]) => <button key={v} className={`pick ${filtro === v ? 'on' : ''}`} onClick={() => setFiltro(v)}>{t}</button>)}</div>
 
       <section className="px mt16 stack-y">

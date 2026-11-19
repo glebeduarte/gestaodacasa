@@ -5,6 +5,8 @@ import { useDados, soma } from '../hooks'
 import { brl, dataCurta, mesDe, mesAnterior, nomeMesCurto } from '../util'
 import { CatTile } from '../lib/categoryStyle'
 import { BackBar } from '../components/ui/BackBar'
+import { SectionHero } from '../components/Secao'
+import { SECOES } from '../lib/sectionThemes'
 import { useToast } from '../components/ui/Toast'
 
 function ultimosMeses(n) { const arr = []; const d = new Date(); for (let i = 0; i < n; i++) { arr.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); d.setMonth(d.getMonth() - 1) } return arr }
@@ -42,19 +44,13 @@ export default function Fechamento() {
   return (
     <>
       <BackBar titulo="Fechamento" acao={<button className="iconbtn no-print" onClick={() => window.print()} aria-label="Imprimir"><Printer size={18} className="i" /></button>} />
-      <header className="hdr" style={{ paddingTop: 12, paddingBottom: 8 }}><div><p className="eyebrow">Resumo do mês</p><h1 style={{ textTransform: 'capitalize' }}>{label}</h1></div></header>
+      <SectionHero chave="fechamento" g={SECOES.fechamento.g} Icon={SECOES.fechamento.Icon} titulo={label.replace(/^./, c => c.toUpperCase())} subtitulo="Resumo do mês" valor={brl(total)}
+        medidor={totalAnt ? { pct: total / totalAnt * 100, rotulo: 'do mês anterior', sub: dif > 0 ? `${dif}% acima do mês anterior` : dif < 0 ? `${-dif}% abaixo do mês anterior` : 'Igual ao mês anterior', cor: dif > 0 ? 'var(--danger)' : undefined } : undefined} />
 
       <div className="hscroll no-print">{meses.map(m => <button key={m} className={`pick ${ym === m ? 'on' : ''}`} onClick={() => setYm(m)} style={{ textTransform: 'capitalize' }}>{nomeMesCurto(m)}</button>)}</div>
 
-      <section className="px mt16">
-        <div className="hero">
-          <p className="hero-label">Total gasto</p>
-          <p className="hero-value num">{brl(total)}</p>
-          {dif !== null && <p className="hero-sub">{dif === 0 ? 'igual ao mês passado' : `${dif > 0 ? '+' : ''}${dif}% vs mês passado (${brl(totalAnt)})`}</p>}
-        </div>
-      </section>
 
-      <div className="px stats mt16">
+      <div className="px stats mt16 v2-cascata">
         <div className="stat"><p className="l">Contas</p><p className="v num">{brl(fixos)}</p></div>
         <div className="stat"><p className="l">Obras</p><p className="v num">{brl(obras)}</p></div>
         <div className="stat"><p className="l">Pessoas</p><p className="v num">{brl(pessoas)}</p></div>

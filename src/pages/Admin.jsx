@@ -11,6 +11,8 @@ import { excluirOuArquivar } from '../lib/crud'
 import { AjustesCasa } from '../components/AjustesCasa'
 import { useCasa } from '../lib/casa'
 import { Sheet } from '../components/ui/Sheet'
+import { SectionHero } from '../components/Secao'
+import { SECOES } from '../lib/sectionThemes'
 import { useToast } from '../components/ui/Toast'
 
 const ABAS = [['casa', 'Casa'], ['categorias', 'Categorias'], ['pessoas', 'Pessoas'], ['obras', 'Obras']]
@@ -56,7 +58,7 @@ export default function Admin({ sessao }) {
 
   return (
     <>
-      <header className="hdr"><div><p className="eyebrow">Configurações</p><h1>Ajustes</h1></div></header>
+      <SectionHero chave="ajustes" arteChave="manutencoes" g={SECOES.manutencoes.g} Icon={SECOES.manutencoes.Icon} titulo="Ajustes" subtitulo="Configurações da casa" />
       <div className="hscroll">{ABAS.filter(([v]) => (v !== 'pessoas' || casa?.modulos?.includes('pessoas')) && (v !== 'obras' || casa?.modulos?.includes('obras'))).map(([v, t]) => <button key={v} className={`pick ${aba === v ? 'on' : ''}`} onClick={() => setAba(v)}>{t}</button>)}</div>
 
       {aba === 'casa' && casa && <AjustesCasa />}

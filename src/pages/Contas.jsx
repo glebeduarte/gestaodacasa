@@ -48,7 +48,7 @@ export default function Contas() {
 
   return (
     <>
-      <SectionHero chave="contas" g={SECOES.contas.g} Icon={SECOES.contas.Icon} titulo="Contas da casa" subtitulo="Luz, água, internet e afins do mês" valor={brl(soma(pagasMes) + soma(avencer) + soma(atrasadas))}>
+      <SectionHero chave="contas" g={SECOES.contas.g} Icon={SECOES.contas.Icon} titulo="Contas da casa" subtitulo="Luz, água, internet e afins do mês" valor={brl(soma(pagasMes) + soma(avencer) + soma(atrasadas))} medidor={(() => { const tot = soma(pagasMes) + soma(avencer) + soma(atrasadas); return { pct: tot ? soma(pagasMes) / tot * 100 : 0, rotulo: 'já pago', sub: atrasadas.length ? `${atrasadas.length} atrasada${atrasadas.length > 1 ? 's' : ''}` : 'Nada atrasado', cor: atrasadas.length ? 'var(--danger)' : undefined } })()}>
         <div className="btnrow mt12"><button className="btn sm" onClick={() => acoes.abrirNova()}><Plus size={15} className="i" />Por foto ou manual</button><Link className="btn sm" to="/importar"><FileUp size={15} className="i" />Importar extrato</Link></div>
       </SectionHero>
 

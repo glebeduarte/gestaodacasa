@@ -5,6 +5,8 @@ import { restante } from '../lib/adiantamentos'
 import { supabase } from '../supabase'
 import { useDados, soma } from '../hooks'
 import { brl, dataCurta, iniciais, mesAtual, UNIDADE } from '../util'
+import { SectionHero } from '../components/Secao'
+import { SECOES } from '../lib/sectionThemes'
 import { BackBar } from '../components/ui/BackBar'
 import { FolhaPagamento, FolhaVerPagamento, FolhaAdiantamento, TIPO_ITEM } from '../components/FolhaPagamento'
 import { FolhaPessoa, corAvatar } from './Pessoas'
@@ -37,19 +39,16 @@ export default function Pessoa() {
   return (
     <>
       <BackBar to="/pessoas" titulo={p.nome} acao={<button className="iconbtn" onClick={() => setEditar(true)} aria-label="Editar"><Pencil size={18} className="i" /></button>} />
-      <header className="hdr" style={{ paddingTop: 12 }}>
-        <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-          <div className={`pill-av ${corAvatar(p)}`} style={{ width: 60, height: 60, fontSize: 20, borderRadius: 18 }}>{iniciais(p.nome)}</div>
-          <div><h1 style={{ fontSize: 24 }}>{p.nome}</h1><p className="sub">{p.funcao}{p.valor_combinado ? ` · ${brl(p.valor_combinado)} ${UNIDADE[p.unidade_valor] || ''}` : ''}</p><span className={`chip ${p.recorrente === false ? '' : 'pool'}`} style={{ marginTop: 6 }}>{p.recorrente === false ? 'Pagamento avulso' : `Recorrente · ${p.frequencia || 'mensal'}`}</span></div>
-        </div>
-      </header>
+      <SectionHero chave={`pessoa_${p.id}`} arteChave="pessoas" g={SECOES.pessoas.g} Icon={SECOES.pessoas.Icon} titulo={p.nome} subtitulo={p.funcao || 'Pessoa'} valor={brl(pago)}>
+        <div className="v2-pessoa-info"><p className="sub">{p.funcao}{p.valor_combinado ? ` · ${brl(p.valor_combinado)} ${UNIDADE[p.unidade_valor] || ''}` : ''}</p><span className={`chip ${p.recorrente === false ? '' : 'pool'}`} style={{ marginTop: 6 }}>{p.recorrente === false ? 'Pagamento avulso' : `Recorrente · ${p.frequencia || 'mensal'}`}</span></div>
+      </SectionHero>
 
       <div className="px btnrow">
         {tel && <a className="btn wa" href={`https://wa.me/55${tel}`} target="_blank" rel="noreferrer"><MessageCircle size={18} className="i" />WhatsApp</a>}
         {tel && <a className="btn call" href={`tel:${tel}`}><Phone size={18} className="i" />Ligar</a>}
       </div>
 
-      <div className="px stats mt16">
+      <div className="px stats mt16 v2-cascata">
         <div className="stat"><p className="l" style={{ color: 'var(--ok)' }}>Pago no mês</p><p className="v num">{brl(pago)}</p></div>
         <div className="stat"><p className="l">Pagamentos no mês</p><p className="v num">{doMes.length}</p></div>
         <div className="stat"><p className="l">Último</p><p className="v">{despesas[0] ? dataCurta(despesas[0].data) : '—'}</p></div>

@@ -7,9 +7,10 @@ import { useCapas } from '../lib/capas'
 import { useCasa } from '../lib/casa'
 import { useToast } from './ui/Toast'
 import { mascaraReais, exibirReais, numero } from '../util'
+import { Conta, Medidor } from './Anim'
 
 // Topo de cada seção: cor da seção, imagem fundida ao degradê e conteúdo por cima
-export function SectionHero({ chave, arteChave, g, Icon, titulo, subtitulo, valor, voltar, children }) {
+export function SectionHero({ chave, arteChave, g, Icon, titulo, subtitulo, valor, voltar, medidor, children }) {
   const nav = useNavigate()
   const { capas, enviar } = useCapas()
   const { podeEditar } = useCasa() || {}
@@ -23,22 +24,31 @@ export function SectionHero({ chave, arteChave, g, Icon, titulo, subtitulo, valo
     setEnviando(true)
     try { await enviar(chave, f); toast('Imagem de topo atualizada') } catch (err) { toast({ txt: err.message, erro: true }) } finally { setEnviando(false) }
   }
+  // Valor em reais vira número animado; outros textos ficam como estão
+  const valorAnim = typeof valor === 'string' && /^-?R\$/.test(valor.trim())
+    ? <Conta valor={(valor.includes('-') ? -1 : 1) * Number(valor.replace(/[^\d,]/g, '').replace(',', '.'))} />
+    : valor
   return (
-    <section className="s-hero" style={{ background: g[0] }}>
-      <div className="s-img" style={{ backgroundImage: `url("${img}")` }} />
-      <div className="s-grad" style={{ background: `linear-gradient(100deg, ${g[0]} 0%, ${g[0]}e6 35%, ${g[1]}66 75%, ${g[1]}22 100%)` }} />
-      {voltar && <button className="s-back" onClick={() => (typeof voltar === 'string' ? nav(voltar) : nav(-1))} aria-label="Voltar"><ArrowLeft size={18} /></button>}
-      {podeEditar && (<>
-        <button className="s-imgbtn" onClick={() => inp.current?.click()} disabled={enviando}><Camera size={13} />{enviando ? 'Enviando…' : capas[chave] ? 'Trocar' : 'Imagem de topo'}</button>
-        <input ref={inp} type="file" accept="image/*" hidden onChange={trocar} />
-      </>)}
-      <div className="s-body">
-        {Icon && <Icon size={30} className="s-ico" />}
-        <h2>{titulo}</h2>
-        {subtitulo && <p>{subtitulo}</p>}
-        {valor !== undefined && valor !== null && <div className="s-big num">{valor}</div>}
+    <section className={`v2-hero ${medidor ? 'com-medidor' : ''}`}>
+      <div className="v2-hero-txt v2-cascata">
+        <div className="v2-hero-top">
+          {voltar && <button className="v2-back" onClick={() => (typeof voltar === 'string' ? nav(voltar) : nav(-1))} aria-label="Voltar"><ArrowLeft size={18} /></button>}
+          {subtitulo && <small className="v2-eyebrow">{subtitulo}</small>}
+        </div>
+        <h1 className="v2-titulo">{titulo}</h1>
+        {valor !== undefined && valor !== null && <div className="v2-big num">{valorAnim}</div>}
         {children}
       </div>
+      {medidor
+        ? <div className="v2-hero-med"><Medidor {...medidor} /></div>
+        : <div className="v2-hero-img" style={{ background: g[0] }}>
+            <div className="s-img" style={{ backgroundImage: `url("${img}")` }} />
+            {Icon && <span className="v2-hero-ic"><Icon size={18} /></span>}
+            {podeEditar && (<>
+              <button className="s-imgbtn" onClick={() => inp.current?.click()} disabled={enviando}><Camera size={13} />{enviando ? 'Enviando…' : capas[chave] ? 'Trocar' : 'Imagem'}</button>
+              <input ref={inp} type="file" accept="image/*" hidden onChange={trocar} />
+            </>)}
+          </div>}
     </section>
   )
 }

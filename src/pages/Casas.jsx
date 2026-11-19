@@ -5,6 +5,8 @@ import { supabase, definirCasaAtual, semAviso } from '../supabase'
 import { useCasa } from '../lib/casa'
 import { TIPOS_CASA, MODULOS, pacoteInicial, nomeTipo } from '../lib/tipos'
 import { useToast } from '../components/ui/Toast'
+import { SectionHero } from '../components/Secao'
+import { SECOES } from '../lib/sectionThemes'
 import { brl, hoje, mesAtual } from '../util'
 
 export const ICONE_MOD = { Users, Hammer, Wrench, Package, Waves, Leaf, PawPrint, Car, Building2, Building, Tractor, Home }
@@ -31,7 +33,7 @@ export default function Casas() {
   if (!casas) return <p className="carregando">Carregando…</p>
   return (
     <>
-      <header className="hdr"><div><p className="eyebrow">Gestão Doméstica</p><h1>Minhas casas</h1></div></header>
+      <SectionHero chave="casas" arteChave="inicio" g={SECOES.inicio.g} Icon={SECOES.inicio.Icon} titulo="Minhas casas" subtitulo="Troque de casa ou crie outra" />
       <section className="px stack-y">
         {casas.map(c => (
           <button key={c.id} className={`card casa-card ${casa?.id === c.id ? 'on' : ''}`} onClick={() => { trocar(c.id); nav('/') }}>

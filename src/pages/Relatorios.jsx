@@ -5,6 +5,8 @@ import { supabase } from '../supabase'
 import { useDados, soma } from '../hooks'
 import { brl, dataCurta, diasAte, hoje, semanasDesde, semanasTotal } from '../util'
 import { BackBar } from '../components/ui/BackBar'
+import { SectionHero } from '../components/Secao'
+import { SECOES } from '../lib/sectionThemes'
 import { useCasa } from '../lib/casa'
 
 const STATUS = { orcamento_pendente: ['warn', 'Orçamento pendente'], em_andamento: ['pool', 'Em andamento'], pausada: ['', 'Pausada'], concluida: ['ok', 'Concluída'], cancelada: ['danger', 'Cancelada'] }
@@ -24,7 +26,7 @@ export default function Relatorios() {
   ].filter(i => i.ok !== false)
   return (
     <>
-      <header className="hdr"><div><p className="eyebrow">{casa?.nome}</p><h1>Relatórios</h1></div></header>
+      <SectionHero chave="relatorios" g={SECOES.relatorios.g} Icon={SECOES.relatorios.Icon} titulo="Relatórios" subtitulo={casa?.nome} />
       <section className="px"><div className="list">
         {itens.map(i => i.breve ? (
           <div key={i.t} className="row" style={{ opacity: .55 }}><span className="tile t-md c-neutral"><i.Icon size={22} className="i" /></span><div className="grow"><p className="t">{i.t}</p><p className="s">{i.s}</p></div><span className="chip">em breve</span></div>

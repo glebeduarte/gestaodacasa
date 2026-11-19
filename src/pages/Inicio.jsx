@@ -86,21 +86,10 @@ export default function Inicio({ sessao }) {
         <div className="v2-hello-r"><button className="v2-toggle" onClick={alternar} title={claro ? 'Mudar para modo escuro' : 'Mudar para modo claro'}>{claro ? <Moon size={16} /> : <Sun size={16} />}<span>{claro ? 'Modo escuro' : 'Modo claro'}</span></button><span className="avatar">{iniciais(nomeUsuario(sessao?.user))}</span></div>
       </div>
 
-      {noite ? (
-        <div className="v2-painel v2-in">
-          <Link to="/fechamento" className="v2-painel-txt">
-            <small>{mes.label.replace(/^./, c => c.toUpperCase())}</small>
-            <h2>Gasto até agora</h2>
-            <div className="v2-big num"><Conta valor={total} /></div>
-            <p>{passado > 0 ? `Mês passado fechou em ${brl(passado)}.` : 'Somando contas, obras e pessoas.'}</p>
-          </Link>
-          <Medidor pct={passado > 0 ? total / passado * 100 : 0} rotulo="do mês passado" sub={passado > 0 ? (total > passado ? 'Já passou do mês anterior' : `Faltam ${brl(passado - total)} para igualar`) : 'Sem dados do mês anterior'} cor={passado > 0 && total > passado ? 'var(--danger)' : undefined} />
-        </div>
-      ) : (
-      <Link to="/fechamento" style={{ display: 'block' }}>
-        <SectionHero chave="inicio" g={SECOES.inicio.g} Icon={SECOES.inicio.Icon} titulo={mes.label.replace(/^./, c => c.toUpperCase())} subtitulo="Gasto até agora, somando contas, obras e pessoas" valor={brl(total)} />
-      </Link>
-      )}
+      <SectionHero chave="inicio" g={SECOES.inicio.g} Icon={SECOES.inicio.Icon} titulo="Gasto até agora" subtitulo={mes.label} valor={brl(total)}
+        medidor={{ pct: passado > 0 ? total / passado * 100 : 0, rotulo: 'do mês passado', sub: passado > 0 ? (total > passado ? 'Já passou do mês anterior' : `Faltam ${brl(passado - total)} para igualar`) : 'Sem dados do mês anterior', cor: passado > 0 && total > passado ? 'var(--danger)' : undefined }}>
+        <Link to="/fechamento" className="v2-hero-sub">{passado > 0 ? `Mês passado fechou em ${brl(passado)}. Ver fechamento` : 'Ver fechamento do mês'}</Link>
+      </SectionHero>
 
       <div className="s-stats v2-cascata">
         <Link to="/contas" className="stat"><span>Contas</span><b className="num"><Conta valor={totalFixos} /></b></Link>
