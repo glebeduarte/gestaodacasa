@@ -17,6 +17,7 @@ import { statusConta, gerarContasMes, avisosAluguel } from '../lib/contas'
 import { Plus, Moon, Sun } from 'lucide-react'
 import { useVisual } from '../lib/visual'
 import { Conta, Medidor } from '../components/Anim'
+import { CasaCapa } from '../components/CasaCapa'
 
 export default function Inicio({ sessao }) {
   const toast = useToast()
@@ -82,14 +83,19 @@ export default function Inicio({ sessao }) {
   return (
     <>
       <div className="hello">
-        <div><small>{casa?.nome} · {dataExtenso()}</small><h1>{saudacao()}{email ? `, ${nomeUsuario(sessao.user)}` : ''}</h1></div>
+        <div><small>{dataExtenso()}</small><h1>{saudacao()}{email ? `, ${nomeUsuario(sessao.user)}` : ''}</h1></div>
         <div className="v2-hello-r"><button className="v2-toggle" onClick={alternar} title={claro ? 'Mudar para modo escuro' : 'Mudar para modo claro'}>{claro ? <Moon size={16} /> : <Sun size={16} />}<span>{claro ? 'Modo escuro' : 'Modo claro'}</span></button><span className="avatar">{iniciais(nomeUsuario(sessao?.user))}</span></div>
       </div>
 
-      <SectionHero chave="inicio" g={SECOES.inicio.g} Icon={SECOES.inicio.Icon} titulo="Gasto até agora" subtitulo={mes.label} valor={brl(total)}
-        medidor={{ pct: passado > 0 ? total / passado * 100 : 0, rotulo: 'do mês passado', sub: passado > 0 ? (total > passado ? 'Já passou do mês anterior' : `Faltam ${brl(passado - total)} para igualar`) : 'Sem dados do mês anterior', cor: passado > 0 && total > passado ? 'var(--danger)' : undefined }}>
-        <Link to="/fechamento" className="v2-hero-sub">{passado > 0 ? `Mês passado fechou em ${brl(passado)}. Ver fechamento` : 'Ver fechamento do mês'}</Link>
-      </SectionHero>
+      <CasaCapa>
+        <div className="v2-casa-resumo">
+          <small className="v2-eyebrow">{mes.label}</small>
+          <p className="v2-casa-rot">Gasto até agora</p>
+          <div className="v2-big num"><Conta valor={total} /></div>
+        </div>
+        <Medidor pct={passado > 0 ? total / passado * 100 : 0} rotulo="do mês passado" sub={passado > 0 ? (total > passado ? 'Já passou do mês anterior' : `Faltam ${brl(passado - total)} para igualar`) : 'Sem dados do mês anterior'} cor={passado > 0 && total > passado ? 'var(--danger)' : undefined} />
+        <Link to="/fechamento" className="v2-hero-sub" style={{ textAlign: 'center' }}>{passado > 0 ? `Mês passado: ${brl(passado)} · ver fechamento` : 'Ver fechamento do mês'}</Link>
+      </CasaCapa>
 
       <div className="s-stats v2-cascata">
         <Link to="/contas" className="stat"><span>Contas</span><b className="num"><Conta valor={totalFixos} /></b></Link>

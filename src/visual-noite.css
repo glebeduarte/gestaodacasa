@@ -175,3 +175,22 @@ html.v2 .hero{background:var(--surface);backdrop-filter:blur(18px);color:var(--i
 html.v2 .hero :is(.hero-label,.hero-sub,.eyebrow){color:var(--ink-2)}
 html.v2 .tip{background:var(--pool-soft);border:1px dashed var(--line);color:var(--ink)}
 html.v2 .stats{gap:10px}
+
+/* ===== Foto da casa no Início ===== */
+.v2-casa{display:grid;gap:14px;margin:14px var(--gx) 18px;animation:v2-entra .6s cubic-bezier(.2,.8,.2,1) both}
+.v2-casa-foto{position:relative;border-radius:24px;overflow:hidden;min-height:240px;border:1px solid var(--line);box-shadow:var(--shadow);background:#222}
+.v2-casa-img{position:absolute;inset:0;background-size:cover;background-position:center;animation:v2-foco .8s ease both}
+.v2-casa-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,6,.35) 0%,transparent 30%,transparent 55%,rgba(10,10,6,.7) 100%)}
+.v2-casa-nome{position:absolute;left:18px;right:18px;bottom:16px;display:flex;align-items:center;gap:10px;color:#fff}
+.v2-casa-nome h2{font-family:var(--font-d);font-size:28px;font-weight:600;line-height:1.1;text-shadow:0 2px 12px rgba(0,0,0,.35);animation:v2-sobe .7s .1s cubic-bezier(.2,.8,.2,1) both}
+.v2-casa-btn{position:absolute;right:12px;top:12px;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:15px;font-size:12px;font-weight:700;color:#fff;background:rgba(20,19,13,.5);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.18);cursor:pointer}
+.v2-casa .v2-pills{top:12px;left:12px}
+.v2-casa-lado{display:flex;flex-direction:column;gap:6px;padding:18px;border-radius:24px;background:var(--surface);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);border:1px solid var(--line);box-shadow:var(--shadow);color:var(--ink)}
+.v2-casa-rot{color:var(--ink-2);font-size:14px;margin-top:4px}
+.v2-casa-resumo .v2-big{margin:2px 0 6px}
+@media (min-width:900px){
+  .v2-casa{grid-template-columns:1.55fr 1fr}
+  .v2-casa-foto{min-height:380px}
+  .v2-casa-nome h2{font-size:36px}
+  .v2-casa-lado{justify-content:center}
+}

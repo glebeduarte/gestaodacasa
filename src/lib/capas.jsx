@@ -22,9 +22,13 @@ export function CapasProvider({ children }) {
     const { data } = await supabase.from('section_covers').select('section_key,image_path')
     const linhas = data || []
     if (!linhas.length) return setCapas({})
-    const { data: urls } = await supabase.storage.from('section-covers').createSignedUrls(linhas.map(l => l.image_path), 60 * 60 * 6)
+    // caminhos que começam com / ou http são imagens públicas do próprio site
+    const direto = (p) => /^(\/|https?:)/.test(p)
+    const priv = linhas.filter(l => !direto(l.image_path))
+    const { data: urls } = priv.length ? await supabase.storage.from('section-covers').createSignedUrls(priv.map(l => l.image_path), 60 * 60 * 6) : { data: [] }
     const mapa = {}
-    linhas.forEach((l, i) => { if (urls?.[i]?.signedUrl) mapa[l.section_key] = urls[i].signedUrl })
+    linhas.filter(l => direto(l.image_path)).forEach(l => { mapa[l.section_key] = l.image_path })
+    priv.forEach((l, i) => { if (urls?.[i]?.signedUrl) mapa[l.section_key] = urls[i].signedUrl })
     setCapas(mapa)
   }, [casa?.id])
   useEffect(() => { carregar() }, [carregar])
@@ -36,7 +40,7 @@ export function CapasProvider({ children }) {
     if (error) throw error
     const { data: antiga } = await supabase.from('section_covers').select('image_path').eq('section_key', chave).maybeSingle()
     await supabase.from('section_covers').upsert({ casa_id: casa.id, section_key: chave, image_path: caminho, updated_at: new Date().toISOString() }, { onConflict: 'casa_id,section_key' })
-    if (antiga?.image_path) supabase.storage.from('section-covers').remove([antiga.image_path]).then(() => null, () => null)
+    if (antiga?.image_path && !/^(\/|https?:)/.test(antiga.image_path)) supabase.storage.from('section-covers').remove([antiga.image_path]).then(() => null, () => null)
     setCapas(x => ({ ...x, [chave]: URL.createObjectURL(blob) }))
   }
   const remover = async (chave) => {
