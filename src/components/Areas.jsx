@@ -63,7 +63,7 @@ export function GradeAreas() {
   const { abrir } = useAdicionar()
   const { dados: resumo } = useResumoAreas()
   return (
-    <div className="s-grid">
+    <div className="s-grid v2-cascata">
       {areasDaCasa(casa).map(a => { const s = SECOES[a.k]; return (
         <SectionTile key={a.k} chave={a.k} g={s.g} Icon={s.Icon} nome={s.nome} resumo={resumo?.[a.k] ?? ' '}
           onAbrir={() => nav(a.to)} onMais={a.add ? () => abrir(a.add) : a.modulo ? () => nav(a.to) : undefined} />

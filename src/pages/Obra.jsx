@@ -11,7 +11,11 @@ import { Sheet } from '../components/ui/Sheet'
 import { catStyle } from '../lib/categoryStyle'
 import { useToast } from '../components/ui/Toast'
 import { FolhaEditarDespesa } from '../components/FolhaEditarDespesa'
-import { Trash2 } from 'lucide-react'
+import { Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useVisual } from '../lib/visual'
+import { Conta, Medidor } from '../components/Anim'
+import { arte } from '../lib/sectionArt'
+import { SECOES } from '../lib/sectionThemes'
 
 const STATUS_CHIP = { orcamento_pendente: ['warn', 'Orçamento pendente'], em_andamento: ['pool', 'Em andamento'], pausada: ['', 'Pausada'], concluida: ['ok', 'Concluída'], cancelada: ['danger', 'Cancelada'] }
 
@@ -27,6 +31,8 @@ export default function Obra() {
   const [novoItem, setNovoItem] = useState('')
   const [filtroCk, setFiltroCk] = useState('todos')
 
+  const { noite } = useVisual()
+  const [fotoAt, setFotoAt] = useState(0)
   const { dados, recarregar } = useDados(async () => {
     const [o, cats, pessoas, despesas, itens, atts, orcs] = await Promise.all([
       supabase.from('obras').select('*, pessoas(nome,telefone,funcao), categorias(*)').eq('id', id).single().then(r => r.data),
@@ -59,6 +65,8 @@ export default function Obra() {
   const diasRest = o.prazo_previsto ? diasAte(o.prazo_previsto) : null
   const [chipCls, chipTxt] = STATUS_CHIP[o.status] || ['', o.status]
   const fotos = despesas.flatMap(d => d.fotos || [])
+  const imgs = [...(o.fotos || []), ...(o.foto_capa ? [o.foto_capa] : []), ...fotos].filter(u => typeof u === 'string' && /\.(jpe?g|png|webp|heic|gif)(\?|$)/i.test(u))
+  const capa = imgs[fotoAt] || arte('obras', SECOES.obras.g)
   const tel = (o.pessoas?.telefone || '').replace(/\D/g, '')
 
   const aprovar = async (orcamento) => {
@@ -89,14 +97,49 @@ export default function Obra() {
   return (
     <>
       <BackBar to="/obras" titulo="Obra" acao={<button className="btn sm" onClick={() => setEditar(true)}><Pencil size={15} className="i" />Editar</button>} />
+      {noite ? (
+        <div className="px mt16 v2-cascata">
+          <p className="v2-ctx">{[o.area_casa, o.pessoas?.nome, o.data_inicio && `${dataCurta(o.data_inicio)}${o.prazo_previsto ? ` a ${dataCurta(o.prazo_previsto)}` : ''}`].filter(Boolean).join(' · ') || 'Obra'}</p>
+          <h1 className="v2-titulo">{o.nome}</h1>
+          <div className="v2-obra-g">
+            <div className="v2-foto">
+              <div className="v2-foto-img" key={capa} style={{ backgroundImage: `url("${capa}")` }} />
+              <div className="v2-pills">
+                <label className={`v2-pill ${chipCls} status-pick`}><i />{chipTxt}<ChevronDown size={12} /><select value={o.status} onChange={e => mudarStatus(e.target.value)} aria-label="Mudar status">{Object.entries(STATUS_CHIP).map(([k, [, t]]) => <option key={k} value={k}>{t}</option>)}</select></label>
+                {itens.length > 0 && <span className="v2-pill"><ListChecks size={12} />{feitos} de {itens.length} feitos</span>}
+              </div>
+              {imgs.length > 1 && (
+                <div className="v2-thumbs">
+                  <button onClick={() => setFotoAt(i => Math.max(0, i - 1))} aria-label="Anterior"><ChevronLeft size={16} /></button>
+                  {imgs.slice(0, 8).map((u, i) => <button key={u} className={i === fotoAt ? 'on' : ''} style={{ backgroundImage: `url("${u}")` }} onClick={() => setFotoAt(i)} aria-label={`Foto ${i + 1}`} />)}
+                  <span>{fotoAt + 1} de {imgs.length}</span>
+                  <button onClick={() => setFotoAt(i => Math.min(imgs.length - 1, i + 1))} aria-label="Próxima"><ChevronRight size={16} /></button>
+                </div>
+              )}
+            </div>
+            <div className="v2-side">
+              <p className="v2-side-h">Quanto já foi pago</p>
+              {o.orcamento_total
+                ? <Medidor pct={pago / o.orcamento_total * 100} rotulo="do combinado" cor={excedente > 0 ? 'var(--danger)' : undefined} />
+                : <p className="v2-gauge-sub">Sem orçamento definido</p>}
+              <div className="v2-trio">
+                <div><small>Pago</small><b className="num"><Conta valor={pago} /></b></div>
+                <div><small>{excedente > 0 ? 'Acima' : 'Falta'}</small><b className="num" style={excedente > 0 ? { color: 'var(--danger)' } : null}>{o.orcamento_total ? <Conta valor={excedente > 0 ? excedente : falta} /> : '—'}</b></div>
+                <div><small>Prazo</small><b>{diasRest !== null ? `${diasRest} d` : '—'}</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className="px mt16">
         <div className="chips"><label className={`chip ${chipCls} status-pick`}>{chipTxt}<ChevronDown size={13} className="i" /><select value={o.status} onChange={e => mudarStatus(e.target.value)} aria-label="Mudar status">{Object.entries(STATUS_CHIP).map(([k, [, t]]) => <option key={k} value={k}>{t}</option>)}</select></label>{o.area_casa && <span className="chip">{o.area_casa}</span>}{o.data_inicio && <span className="chip">{dataCurta(o.data_inicio)}{o.prazo_previsto ? ` a ${dataCurta(o.prazo_previsto)}` : ''}</span>}</div>
         <h1 style={{ marginTop: 10 }}>{o.nome}</h1>
       </div>
 
+      )}
       <div className="px mt16">
         <div className="card">
-          {o.orcamento_total ? (<>
+          {noite ? null : o.orcamento_total ? (<>
             <div className="barlabel"><span>Pago</span><span><b className="num">{brl(pago)}</b> de {brl(o.orcamento_total)}</span></div>
             <div className="bar" style={{ height: 12 }}><i style={{ width: pct + '%', '--b': 'linear-gradient(90deg,var(--pool),var(--primary))' }} /></div>
             <div className="stats two mt12">
@@ -105,7 +148,7 @@ export default function Obra() {
             </div>
           </>) : <div className="note"><b>Sem orçamento definido</b>Registre um orçamento por escrito e aprove para acompanhar o quanto já foi pago.</div>}
           {totalSem && (<>
-            <div className="divider" /><p className="sub" style={{ fontWeight: 700 }}>Semana da obra</p>
+            {!noite && <div className="divider" />}<p className="sub" style={{ fontWeight: 700 }}>Semana da obra</p>
             <div className="weeks mt8">{Array.from({ length: totalSem }).map((_, i) => { const n = i + 1; const st = n < sem ? 'done' : n === sem ? 'now' : ''; return <div key={n} className={`w ${st}`}><span className="c">{st === 'done' ? <Check size={14} className="i" /> : n}</span>S{n}</div> })}</div>
           </>)}
           {material > 0 && <p className="muted" style={{ marginTop: 12 }}>Material comprado à parte: <b className="num" style={{ color: 'var(--ink)' }}>{brl(material)}</b></p>}

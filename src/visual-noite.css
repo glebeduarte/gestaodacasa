@@ -1,0 +1,110 @@
+/* ===== Visual "Noite" (em teste): vidro fosco escuro, um destaque verde-limão, entradas em cascata ===== */
+.v2-toggle{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:17px;font-size:12.5px;font-weight:700;background:var(--surface);color:var(--ink-2);box-shadow:var(--shadow)}
+.v2-hello-r{display:flex;align-items:center;gap:10px}
+@media (max-width:420px){.v2-toggle span{display:none}.v2-toggle{width:34px;padding:0;justify-content:center}}
+
+html.v2 body{
+  --bg:transparent;--bg-out:#14130d;--surface:rgba(255,255,255,.055);--surface-2:rgba(255,255,255,.04);
+  --ink:#F1EEE4;--ink-2:#B9B4A3;--muted:#8A8574;--line:rgba(255,255,255,.09);
+  --primary:#C9F24A;--pool:#C9F24A;--pool-soft:rgba(201,242,74,.12);--aegean:#1c1b14;
+  --ok:#8FD16A;--ok-soft:rgba(143,209,106,.14);--warn:#E3B44F;--warn-soft:rgba(227,180,79,.14);--danger:#E07A5F;--danger-soft:rgba(224,122,95,.15);
+  --v2-ac:#C9F24A;--v2-ac2:#E3C45A;
+  --shadow:0 1px 0 rgba(255,255,255,.06) inset,0 10px 30px -12px rgba(0,0,0,.6);
+  background:#14130d;color:var(--ink);
+}
+html.v2 body::before{content:"";position:fixed;inset:-10%;z-index:-1;pointer-events:none;
+  background:radial-gradient(40% 35% at 75% 15%,rgba(150,140,90,.35),transparent 70%),radial-gradient(35% 40% at 10% 80%,rgba(90,100,60,.35),transparent 70%),radial-gradient(30% 30% at 50% 50%,rgba(70,60,40,.4),transparent 70%),#14130d;filter:blur(30px)}
+html.v2 .app,html.v2 .desk-main{background:transparent}
+
+/* superfícies de vidro */
+html.v2 :is(.card,.list,.alert,.stat,.qa,.s-tile,.row-card,.tip,.note,.v2-side,.sheet-wrap,.input,.seg,.chip,.btn:not(.primary):not(.dark)){
+  background:var(--surface);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);
+  border:1px solid var(--line);box-shadow:var(--shadow)}
+html.v2 .sheet-wrap{background:rgba(30,29,22,.92)}
+html.v2 .sheet-bg{background:rgba(0,0,0,.55)}
+html.v2 .input{color:var(--ink)}
+html.v2 .input::placeholder{color:var(--muted)}
+html.v2 :is(.btn.primary,.btn.dark,.side-add,.fab-desk,.nav .mid span){background:var(--v2-ac)!important;color:#1a1a10!important;box-shadow:0 8px 24px -10px rgba(201,242,74,.6)!important}
+html.v2 .avatar{box-shadow:0 0 0 2px rgba(255,255,255,.15);background:linear-gradient(135deg,#E3C45A,#8a7a3a)}
+html.v2 .bar,html.v2 .seg{background:rgba(255,255,255,.07)}
+html.v2 .seg button.on{background:var(--v2-ac);color:#1a1a10}
+html.v2 .hello small{color:var(--v2-ac)}
+html.v2 :is(h1,h2,.t,b){color:inherit}
+html.v2 .tile{background:rgba(255,255,255,.08);color:var(--ink)}
+
+/* menu lateral e barra inferior */
+html.v2 .desk-side{background:rgba(20,19,13,.55)!important;backdrop-filter:blur(20px);border-right:1px solid var(--line)}
+html.v2 .desk-side a{color:var(--ink-2)}
+html.v2 .desk-side a.on{background:var(--v2-ac);color:#1a1a10}
+html.v2 .desk-side .badge{background:var(--v2-ac);color:#1a1a10}
+html.v2 .nav{background:rgba(24,23,16,.8);border-top:1px solid var(--line)}
+html.v2 .nav a{color:var(--muted)}
+html.v2 .nav a.on{color:var(--v2-ac)}
+html.v2 .navbadge{background:var(--v2-ac);color:#1a1a10}
+
+/* topo de seção: vidro escuro sobre a arte */
+html.v2 .s-hero{border:1px solid var(--line);box-shadow:var(--shadow)}
+html.v2 .s-hero .s-grad{opacity:.85;mix-blend-mode:multiply}
+html.v2 .s-tile{border-radius:20px}
+
+/* painel do início */
+.v2-painel{display:grid;grid-template-columns:1fr;gap:6px;margin:14px var(--gx) 18px;padding:20px;border-radius:24px;background:var(--surface);backdrop-filter:blur(18px);border:1px solid var(--line);box-shadow:var(--shadow);color:var(--ink)}
+.v2-painel-txt small{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--v2-ac);font-weight:700}
+.v2-painel-txt h2{font-size:17px;margin-top:6px;color:var(--ink-2);font-weight:500;font-family:var(--font)}
+.v2-big{font-family:var(--font-d);font-size:40px;font-weight:600;letter-spacing:-.02em;line-height:1.1;margin:4px 0 6px}
+.v2-painel-txt p{color:var(--muted);font-size:13.5px}
+@media (min-width:600px){.v2-painel{grid-template-columns:1.2fr 1fr;align-items:center}}
+
+/* medidor */
+.v2-gauge{position:relative;text-align:center;max-width:240px;margin:0 auto;width:100%}
+.v2-gauge svg{width:100%;display:block}
+.v2-gauge .trk{fill:none;stroke:rgba(255,255,255,.08);stroke-width:14;stroke-linecap:round}
+.v2-gauge .val{fill:none;stroke-width:14;stroke-linecap:round}
+.v2-gauge .tick{stroke:rgba(255,255,255,.25);stroke-width:2;stroke-linecap:round}
+.v2-gauge .ptr{stroke:#fff;stroke-width:4;stroke-linecap:round}
+.v2-gauge .hub{fill:#fff}
+.v2-gauge-n{margin-top:-14px}
+.v2-gauge-n b{display:block;font-family:var(--font-d);font-size:30px;font-weight:600;color:var(--ink)}
+.v2-gauge-n small{color:var(--muted);font-size:12px}
+.v2-gauge-sub{color:var(--ink-2);font-size:12.5px;margin-top:6px;text-align:center}
+
+@media (max-width:600px){.v2-gauge{max-width:190px}.v2-big{font-size:34px}html.v2 .s-stats .stat b{font-size:13.5px}.v2-foto{min-height:220px}}
+
+/* obra */
+.v2-ctx{color:var(--muted);font-size:13px}
+.v2-titulo{font-size:34px!important;margin:4px 0 14px;animation:v2-sobe .7s cubic-bezier(.2,.8,.2,1) both;clip-path:inset(0 0 0 0)}
+.v2-obra-g{display:grid;gap:14px}
+@media (min-width:900px){.v2-obra-g{grid-template-columns:1.6fr 1fr}}
+.v2-foto{position:relative;border-radius:22px;overflow:hidden;min-height:300px;border:1px solid var(--line);background:#222}
+.v2-foto-img{position:absolute;inset:0;background-size:cover;background-position:center;animation:v2-foco .6s ease both}
+.v2-pills{position:absolute;top:12px;left:12px;display:flex;gap:6px;flex-wrap:wrap}
+.v2-pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:14px;font-size:12px;font-weight:700;background:rgba(20,19,13,.6);backdrop-filter:blur(10px);color:#fff;border:1px solid rgba(255,255,255,.15);position:relative}
+.v2-pill i{width:7px;height:7px;border-radius:50%;background:var(--v2-ac)}
+.v2-pill select{position:absolute;inset:0;opacity:0}
+.v2-thumbs{position:absolute;left:10px;right:10px;bottom:10px;display:flex;align-items:center;gap:6px;padding:6px;border-radius:16px;background:rgba(20,19,13,.55);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);overflow-x:auto}
+.v2-thumbs button{flex:none;width:46px;height:36px;border-radius:9px;background-size:cover;background-position:center;border:2px solid transparent;color:#fff;display:grid;place-items:center}
+.v2-thumbs button:first-child,.v2-thumbs button:last-child{width:30px;background:rgba(255,255,255,.1)}
+.v2-thumbs button.on{border-color:var(--v2-ac)}
+.v2-thumbs span{margin-left:auto;color:#fff;font-size:12px;white-space:nowrap;padding:0 6px}
+.v2-side{border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:6px}
+.v2-side-h{font-weight:700;color:var(--ink)}
+.v2-trio{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:auto;padding-top:12px;border-top:1px solid var(--line)}
+.v2-trio small{display:block;color:var(--muted);font-size:11.5px}
+.v2-trio b{font-size:14px}
+
+/* movimento */
+@keyframes v2-entra{from{opacity:0;transform:translateY(10px);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
+@keyframes v2-pagina{from{opacity:0;filter:blur(12px)}to{opacity:1;filter:none}}
+@keyframes v2-sobe{from{opacity:0;transform:translateY(60%)}to{opacity:1;transform:none}}
+@keyframes v2-foco{from{opacity:0;transform:scale(1.04);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+html.v2 .inner-wrap{animation:v2-pagina .45s ease both}
+html.v2 .v2-in{animation:v2-entra .6s cubic-bezier(.2,.8,.2,1) both}
+html.v2 :is(.v2-cascata,.list,.stack-y)>*{animation:v2-entra .55s cubic-bezier(.2,.8,.2,1) both}
+html.v2 :is(.v2-cascata,.list,.stack-y)>*:nth-child(2){animation-delay:.06s}
+html.v2 :is(.v2-cascata,.list,.stack-y)>*:nth-child(3){animation-delay:.12s}
+html.v2 :is(.v2-cascata,.list,.stack-y)>*:nth-child(4){animation-delay:.18s}
+html.v2 :is(.v2-cascata,.list,.stack-y)>*:nth-child(5){animation-delay:.24s}
+html.v2 :is(.v2-cascata,.list,.stack-y)>*:nth-child(6){animation-delay:.3s}
+html.v2 :is(.v2-cascata,.list,.stack-y)>*:nth-child(n+7){animation-delay:.36s}
+html.v2 .sec-h h2{animation:v2-sobe .6s cubic-bezier(.2,.8,.2,1) both}
+@media (prefers-reduced-motion:reduce){html.v2 *{animation:none!important}}

@@ -14,10 +14,13 @@ import { avisarMudanca } from '../hooks'
 import { ContaLinha } from '../components/FolhaConta'
 import { useAcoesConta } from './Contas'
 import { statusConta, gerarContasMes, avisosAluguel } from '../lib/contas'
-import { Plus } from 'lucide-react'
+import { Plus, Moon, Sun } from 'lucide-react'
+import { useVisual } from '../lib/visual'
+import { Conta, Medidor } from '../components/Anim'
 
 export default function Inicio({ sessao }) {
   const toast = useToast()
+  const { noite, alternar } = useVisual()
   const { casa } = useCasa()
   const mods = casa?.modulos || []
   const email = sessao?.user?.email
@@ -32,12 +35,15 @@ export default function Inicio({ sessao }) {
       supabase.from('contas').select('*, categorias(*)').or(`pago_em.is.null,pago_em.gte.${mesAtual().ini}`).order('vencimento').then(r => r.data || [], () => []),
       avisosAluguel().catch(() => []),
     ])
-    return { categorias, despesas, obras, fixos, pessoas, manut, estoque, contas, aluguel, hj }
+    const d0 = new Date(); const pi = new Date(d0.getFullYear(), d0.getMonth() - 1, 1), pf = new Date(d0.getFullYear(), d0.getMonth(), 0)
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const passado = await supabase.from('despesas').select('valor').gte('data', iso(pi)).lte('data', iso(pf)).then(r => soma(r.data || []), () => 0)
+    return { categorias, despesas, obras, fixos, pessoas, manut, estoque, contas, aluguel, passado, hj }
   })
   const mes = mesAtual()
   const acoesConta = useAcoesConta(recarregar)
   if (!dados) return <p className="carregando">Carregando…</p>
-  const { categorias, despesas, obras, fixos, manut, estoque, contas, aluguel = [], hj } = dados
+  const { categorias, despesas, obras, fixos, manut, estoque, contas, aluguel = [], passado = 0, hj } = dados
   const cAtras = contas.filter(c => statusConta(c) === 'atrasada')
   const cVencer = contas.filter(c => statusConta(c) === 'avencer')
   const cPagas = contas.filter(c => statusConta(c) === 'paga')
@@ -77,17 +83,29 @@ export default function Inicio({ sessao }) {
     <>
       <div className="hello">
         <div><small>{casa?.nome} · {dataExtenso()}</small><h1>{saudacao()}{email ? `, ${nomeUsuario(sessao.user)}` : ''}</h1></div>
-        <span className="avatar">{iniciais(nomeUsuario(sessao?.user))}</span>
+        <div className="v2-hello-r"><button className="v2-toggle" onClick={alternar} title="Alternar visual">{noite ? <Sun size={16} /> : <Moon size={16} />}<span>{noite ? 'Visual padrão' : 'Testar visual novo'}</span></button><span className="avatar">{iniciais(nomeUsuario(sessao?.user))}</span></div>
       </div>
 
+      {noite ? (
+        <div className="v2-painel v2-in">
+          <Link to="/fechamento" className="v2-painel-txt">
+            <small>{mes.label.replace(/^./, c => c.toUpperCase())}</small>
+            <h2>Gasto até agora</h2>
+            <div className="v2-big num"><Conta valor={total} /></div>
+            <p>{passado > 0 ? `Mês passado fechou em ${brl(passado)}.` : 'Somando contas, obras e pessoas.'}</p>
+          </Link>
+          <Medidor pct={passado > 0 ? total / passado * 100 : 0} rotulo="do mês passado" sub={passado > 0 ? (total > passado ? 'Já passou do mês anterior' : `Faltam ${brl(passado - total)} para igualar`) : 'Sem dados do mês anterior'} cor={passado > 0 && total > passado ? 'var(--danger)' : undefined} />
+        </div>
+      ) : (
       <Link to="/fechamento" style={{ display: 'block' }}>
         <SectionHero chave="inicio" g={SECOES.inicio.g} Icon={SECOES.inicio.Icon} titulo={mes.label.replace(/^./, c => c.toUpperCase())} subtitulo="Gasto até agora, somando contas, obras e pessoas" valor={brl(total)} />
       </Link>
+      )}
 
-      <div className="s-stats">
-        <Link to="/contas" className="stat"><span>Contas</span><b className="num">{brl(totalFixos)}</b></Link>
-        <Link to={mods.includes('obras') ? '/obras' : '/historico'} className="stat"><span>Obras</span><b className="num">{brl(totalObras)}</b></Link>
-        <Link to={mods.includes('pessoas') ? '/pessoas' : '/historico'} className="stat"><span>Pessoas</span><b className="num">{brl(totalPessoas)}</b></Link>
+      <div className="s-stats v2-cascata">
+        <Link to="/contas" className="stat"><span>Contas</span><b className="num"><Conta valor={totalFixos} /></b></Link>
+        <Link to={mods.includes('obras') ? '/obras' : '/historico'} className="stat"><span>Obras</span><b className="num"><Conta valor={totalObras} /></b></Link>
+        <Link to={mods.includes('pessoas') ? '/pessoas' : '/historico'} className="stat"><span>Pessoas</span><b className="num"><Conta valor={totalPessoas} /></b></Link>
       </div>
 
       <div className="sec-h mt24"><h2>Lançar rápido</h2></div>
@@ -99,8 +117,8 @@ export default function Inicio({ sessao }) {
 
       {top3.length > 0 && (
         <section className="sec">
-          <div className="sec-h"><h2>Precisa de atenção<span className="count">{alertas.length + cAtras.length}</span></h2></div>
-          <div className="px stack-y">
+          <div className="sec-h"><h2>{noite ? 'Precisa de decisão' : 'Precisa de atenção'}<span className="count">{alertas.length + cAtras.length}</span></h2></div>
+          <div className="px stack-y v2-cascata">
             {cAtras.slice(0, 3).map(c => <ContaLinha key={c.id} c={c} onAbrir={acoesConta.abrir} onPagar={acoesConta.pagar} />)}
             {top3.map((a, i) => (
               <div key={i} className={`alert k-${a.k}`}>
